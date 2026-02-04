@@ -10,7 +10,7 @@ Password hashing using recommended security standards.
 Create transactions where positive amounts represent income and negative amounts represent expenses.
 Retrieve a list of transactions with support for pagination (limit, offset) and category filtering.
 Delete specific transactions owned by the authenticated user
-# Balance Analytics:
+### Balance Analytics:
 View the total current balance and the total count of transactions.
 
 ## 🛠 Tech Stack

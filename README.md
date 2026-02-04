@@ -39,3 +39,5 @@ dashboard.html:
 goals.html:
 wishlist.html:
 currency.html:
+<img width="253" height="586" alt="image" src="https://github.com/user-attachments/assets/09caa6d6-c86b-403e-ad1f-dbf892d7ccc5" />
+

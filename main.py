@@ -12,7 +12,8 @@ from sqlmodel import Session, select
 from database import (User, Transaction, UserRead, TransactionCreate, create_db_and_tables, get_session)
 
 # Налаштування безпеки
-SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
+with open('secret_key', 'r', encoding='utf-8') as file:
+    SECRET_KEY = file.read()
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 password_hash = PasswordHash.recommended()
@@ -28,7 +29,7 @@ def on_startup():
 # Dependency для отримання сесії БД
 SessionDep = Annotated[Session, Depends(get_session)]
 
-# --- Pydantic моделі для API ---
+# Pydantic моделі для API 
 class Token(BaseModel):
     access_token: str
     token_type: str
@@ -38,7 +39,7 @@ class UserCreate(BaseModel):
     password: str = Field(..., min_length=8)
     email: EmailStr | None = None
 
-# --- Функції безпеки ---
+# Функції безпеки 
 def get_password_hash(password: str): 
     return password_hash.hash(password)
 
@@ -67,8 +68,7 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], sessio
     if not user: raise credentials_exception
     return user
 
-# --- Ендпоінти користувачів ---
-
+# Ендпоінти користувачів 
 @app.post("/register", response_model=UserRead)
 def register(user_in: UserCreate, session: SessionDep):
     existing = session.exec(select(User).where(User.username == user_in.username)).first()

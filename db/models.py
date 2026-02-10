@@ -1,35 +1,68 @@
-from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey
-from sqlalchemy.orm import relationship
-from database import Base
+from datetime import datetime, timezone
+from typing import Optional, List
+from sqlmodel import Field, Relationship, SQLModel
+from pydantic import EmailStr
 
-class User(Base):
+# --- Головна таблиця USER ---
+class User(SQLModel, table=True):
     __tablename__ = "users"
-    id = Column(Integer, primary_key=True, index=True)
-    email = Column(String, unique=True, index=True)
-    hashed_password = Column(String)
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    username: str = Field(index=True, unique=True)
+    email: Optional[str] = Field(default=None, index=True) # EmailStr краще в схемах
+    hashed_password: str
+    disabled: bool = Field(default=False)
+
+    # === СТРІЛКИ (ЗВ'ЯЗКИ) ===
+    # Один User має багато Transactions, Goals, WishlistItems
+    transactions: List["Transaction"] = Relationship(back_populates="user")
+    goals: List["Goal"] = Relationship(back_populates="owner")
+    wishlist_items: List["WishlistItem"] = Relationship(back_populates="owner")
 
 
-    goals = relationship("Goal", back_populates="owner")
-    wishlist_items = relationship("WishlistItem", back_populates="owner")
+# --- Таблиця TRANSACTION ---
+class Transaction(SQLModel, table=True):
+    __tablename__ = "transactions"
 
-class Goal(Base):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    amount: float
+    category: str
+    description: Optional[str] = None
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    # Зовнішній ключ
+    user_id: int = Field(foreign_key="users.id")
+    # Зворотній зв'язок
+    user: Optional[User] = Relationship(back_populates="transactions")
+
+
+# --- Таблиця GOAL ---
+class Goal(SQLModel, table=True):
     __tablename__ = "goals"
-    id = Column(Integer, primary_key=True, index=True)
-    title = Column(String)
-    target_amount = Column(Float)
-    monthly_contribution = Column(Float)
-    current_savings = Column(Float, default=0.0)
-    owner_id = Column(Integer, ForeignKey("users.id"))
 
-    owner = relationship("User", back_populates="goals")
+    id: Optional[int] = Field(default=None, primary_key=True)
+    title: str
+    target_amount: float
+    monthly_contribution: float
+    current_savings: float = Field(default=0.0)
 
-class WishlistItem(Base):
+    # Зовнішній ключ
+    owner_id: int = Field(foreign_key="users.id")
+    # Зворотній зв'язок
+    owner: Optional[User] = Relationship(back_populates="goals")
+
+
+# --- Таблиця WISHLIST ---
+class WishlistItem(SQLModel, table=True):
     __tablename__ = "wishlist"
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String)
-    price = Column(Float)
-    priority = Column(Integer)
-    is_bought = Column(Boolean, default=False)
-    owner_id = Column(Integer, ForeignKey("users.id"))
 
-    owner = relationship("User", back_populates="wishlist_items")
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str
+    price: float
+    priority: int = Field(default=1)
+    is_bought: bool = Field(default=False)
+
+    # Зовнішній ключ
+    owner_id: int = Field(foreign_key="users.id")
+    # Зворотній зв'язок
+    owner: Optional[User] = Relationship(back_populates="wishlist_items")

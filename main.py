@@ -2,58 +2,41 @@ from datetime import datetime, timedelta, timezone
 from typing import Annotated, List, Optional
 
 import jwt
-from fastapi import FastAPI, HTTPException, status, Depends, Query
+from fastapi import FastAPI, HTTPException, status, Depends, Query, Request
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse
 from jwt.exceptions import InvalidTokenError
 from pwdlib import PasswordHash
-from pydantic import BaseModel, Field, EmailStr
 from sqlmodel import Session, select
 
-from db.database import (User, Transaction, UserRead, TransactionCreate, create_db_and_tables, get_session)
-from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi import Request
-
+# Імпортуємо правильні частини
+from db.database import create_db_and_tables, get_session
+from db.models import User, Transaction, Goal, WishlistItem  # Моделі БД
+from schemas.schemas import UserCreate, UserRead, Token, TransactionCreate, TransactionRead # Pydantic схеми
 
 templates = Jinja2Templates(directory="templates")
 
-# Налаштування безпеки
-with open('core/secret_key', 'r', encoding='utf-8') as file:
-    SECRET_KEY = file.read()
+# --- КОНФІГУРАЦІЯ ---
+SECRET_KEY = "CHANGE_THIS_TO_A_REAL_SECRET_KEY" # Захардкодив для прикладу, краще з env
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
-password_hash = PasswordHash.recommended()
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
+password_hash = PasswordHash.recommended()
+# Знайди цей рядок і додай auto_error=False
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token", auto_error=False)
 app = FastAPI(title="Finance Tracker API")
 
-# Статичні файли
-app.mount(
-    "/static",
-    StaticFiles(directory="static"),
-    name="static"
-)
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# Створюємо таблиці при запуску
 @app.on_event("startup")
 def on_startup():
     create_db_and_tables()
 
-# Dependency для отримання сесії БД
 SessionDep = Annotated[Session, Depends(get_session)]
 
-# --- Pydantic моделі для API ---
-class Token(BaseModel):
-    access_token: str
-    token_type: str
-
-class UserCreate(BaseModel):
-    username: str = Field(..., min_length=3, max_length=20)
-    password: str = Field(..., min_length=8)
-    email: EmailStr | None = None
-
-# --- Функції безпеки ---
+# --- ФУНКЦІЇ БЕЗПЕКИ ---
 def get_password_hash(password: str):
     return password_hash.hash(password)
 
@@ -66,58 +49,47 @@ def create_access_token(data: dict):
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
-async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], session: SessionDep) -> User:
+async def get_current_user(
+    session: SessionDep,
+    request: Request,  # <--- Додаємо об'єкт Request, щоб читати куки
+    token: Annotated[Optional[str], Depends(oauth2_scheme)] # <--- Робимо Optional
+) -> User:
+
+    # 1. Якщо FastAPI не знайшов токен у заголовку, шукаємо в куках
+    if not token:
+        token = request.cookies.get("access_token")
+
+    # Для налагодження (побачиш у терміналі, чи прийшов токен)
+    # print(f"DEBUG: Token from cookie/header: {token}")
+
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+
+    # 2. Якщо токена ніде немає — тоді вже помилка
+    if not token:
+        raise credentials_exception
+
+    # 3. Валідація токена (стандартна логіка)
     try:
+        # Прибираємо префікс "Bearer ", якщо він раптом потрапив у куку (хоча зазвичай ні)
+        if token.startswith("Bearer "):
+            token = token.split(" ")[1]
+
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
-        if username is None: raise credentials_exception
-    except InvalidTokenError: raise credentials_exception
+        if username is None:
+            raise credentials_exception
+    except InvalidTokenError:
+        raise credentials_exception
 
     user = session.exec(select(User).where(User.username == username)).first()
-    if not user: raise credentials_exception
+    if not user:
+        raise credentials_exception
+
     return user
-
-# --- HTML ---
-@app.get("/log", response_class=HTMLResponse)
-def login_page(request: Request):
-    return templates.TemplateResponse(
-        "auth/login.html",
-        {"request": request}
-    )
-
-@app.get("/reg", response_class=HTMLResponse)
-def register_page(request: Request):
-    return templates.TemplateResponse(
-        "auth/register.html",
-        {"request": request}
-    )
-
-@app.get("/dashboard", response_class=HTMLResponse)
-def dashboard(
-    request: Request,
-    session: SessionDep,
-    user: Annotated[User, Depends(get_current_user)]
-):
-    txs = session.exec(
-        select(Transaction).where(Transaction.user_id == user.id)
-    ).all()
-
-    balance = sum(t.amount for t in txs)
-
-    return templates.TemplateResponse(
-        "dashboard.html",
-        {
-            "request": request,
-            "username": user.username,
-            "transactions": txs,
-            "balance": balance,
-        }
-    )
 
 # --- Ендпоінти користувачів ---
 
@@ -193,3 +165,53 @@ def get_balance(session: SessionDep, user: Annotated[User, Depends(get_current_u
     transactions = session.exec(select(Transaction).where(Transaction.user_id == user.id)).all()
     total = sum(t.amount for t in transactions)
     return {"balance": total, "count": len(transactions)}
+
+@app.get("/", response_class=HTMLResponse)
+def index(request: Request):
+    return templates.TemplateResponse("index.html", {"request" : request})
+
+
+# --- HTML ---
+@app.get("/log", response_class=HTMLResponse)
+def login_page(request: Request):
+    return templates.TemplateResponse(
+        "auth/login.html",
+        {"request": request}
+    )
+
+@app.get("/reg", response_class=HTMLResponse)
+def register_page(request: Request):
+    return templates.TemplateResponse(
+        "auth/register.html",
+        {"request": request}
+    )
+
+@app.get("/dashboard", response_class=HTMLResponse)
+def dashboard(
+    request: Request,
+    session: SessionDep,
+    user: Annotated[User, Depends(get_current_user)]
+):
+    txs = session.exec(
+        select(Transaction).where(Transaction.user_id == user.id)
+    ).all()
+
+    balance = sum(t.amount for t in txs)
+
+    return templates.TemplateResponse(
+        "dashboard.html",
+        {
+            "request": request,
+            "username": user.username,
+            "transactions": txs,
+            "balance": balance,
+        }
+    )
+
+from fastapi.responses import RedirectResponse
+
+@app.get("/logout")
+def logout():
+    response = RedirectResponse(url="/log")
+    response.delete_cookie("access_token")
+    return response

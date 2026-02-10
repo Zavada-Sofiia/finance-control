@@ -9,10 +9,10 @@ from pwdlib import PasswordHash
 from pydantic import BaseModel, Field, EmailStr
 from sqlmodel import Session, select
 
-from database import (User, Transaction, UserRead, TransactionCreate, create_db_and_tables, get_session)
+from db.database import (User, Transaction, UserRead, TransactionCreate, create_db_and_tables, get_session)
 
 # Налаштування безпеки
-with open('secret_key', 'r', encoding='utf-8') as file:
+with open('core/secret_key', 'r', encoding='utf-8') as file:
     SECRET_KEY = file.read()
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
@@ -29,7 +29,7 @@ def on_startup():
 # Dependency для отримання сесії БД
 SessionDep = Annotated[Session, Depends(get_session)]
 
-# Pydantic моделі для API 
+# --- Pydantic моделі для API ---
 class Token(BaseModel):
     access_token: str
     token_type: str
@@ -39,11 +39,11 @@ class UserCreate(BaseModel):
     password: str = Field(..., min_length=8)
     email: EmailStr | None = None
 
-# Функції безпеки 
-def get_password_hash(password: str): 
+# --- Функції безпеки ---
+def get_password_hash(password: str):
     return password_hash.hash(password)
 
-def verify_password(plain, hashed): 
+def verify_password(plain, hashed):
     return password_hash.verify(plain, hashed)
 
 def create_access_token(data: dict):
@@ -68,13 +68,14 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], sessio
     if not user: raise credentials_exception
     return user
 
-# Ендпоінти користувачів 
+# --- Ендпоінти користувачів ---
+
 @app.post("/register", response_model=UserRead)
 def register(user_in: UserCreate, session: SessionDep):
     existing = session.exec(select(User).where(User.username == user_in.username)).first()
     if existing:
         raise HTTPException(status_code=400, detail="Username already taken")
-    
+
     # Створюємо об'єкт User для бази, хешуючи пароль з UserCreate
     db_user = User(
         username=user_in.username,
@@ -91,7 +92,7 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], sess
     user = session.exec(select(User).where(User.username == form_data.username)).first()
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(status_code=400, detail="Incorrect username or password")
-    
+
     token = create_access_token(data={"sub": user.username})
     return {"access_token": token, "token_type": "bearer"}
 
@@ -99,8 +100,8 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], sess
 
 @app.post("/transactions/", response_model=Transaction)
 def create_transaction(
-    data: TransactionCreate, 
-    session: SessionDep, 
+    data: TransactionCreate,
+    session: SessionDep,
     user: Annotated[User, Depends(get_current_user)]
 ):
     db_tx = Transaction(**data.model_dump(), user_id=user.id)
@@ -124,8 +125,8 @@ def get_transactions(
 
 @app.delete("/transactions/{tx_id}")
 def delete_transaction(
-    tx_id: int, 
-    session: SessionDep, 
+    tx_id: int,
+    session: SessionDep,
     user: Annotated[User, Depends(get_current_user)]
 ):
     tx = session.get(Transaction, tx_id)
@@ -141,4 +142,3 @@ def get_balance(session: SessionDep, user: Annotated[User, Depends(get_current_u
     transactions = session.exec(select(Transaction).where(Transaction.user_id == user.id)).all()
     total = sum(t.amount for t in transactions)
     return {"balance": total, "count": len(transactions)}
-

@@ -1,0 +1,106 @@
+/* --- Reset --- */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* --- Base --- */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background-color: #f5f7fa;
+    color: #1f2933;
+    line-height: 1.6;
+}
+
+/* --- Navbar --- */
+.navbar {
+    background-color: #111827;
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.navbar a {
+    color: #e5e7eb;
+    margin-right: 1rem;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.navbar a:hover {
+    color: #38bdf8;
+}
+
+.nav-auth a:last-child {
+    margin-right: 0;
+}
+
+/* --- Layout --- */
+.container {
+    max-width: 1000px;
+    margin: 2rem auto;
+    padding: 1.5rem;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+}
+
+/* --- Headings --- */
+h1, h2, h3 {
+    margin-bottom: 1rem;
+    color: #111827;
+}
+
+/* --- Forms --- */
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+input, button {
+    padding: 0.7rem;
+    border-radius: 8px;
+    border: 1px solid #d1d5db;
+    font-size: 1rem;
+}
+
+input:focus {
+    outline: none;
+    border-color: #38bdf8;
+}
+
+button {
+    background-color: #2563eb;
+    color: white;
+    cursor: pointer;
+    border: none;
+    font-weight: 600;
+}
+
+button:hover {
+    background-color: #1d4ed8;
+}
+
+/* --- Transactions --- */
+ul {
+    list-style: none;
+    margin-top: 1rem;
+}
+
+li {
+    padding: 0.75rem;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+}
+
+/* --- Footer --- */
+footer {
+    text-align: center;
+    margin: 2rem 0;
+    color: #6b7280;
+    font-size: 0.9rem;
+}

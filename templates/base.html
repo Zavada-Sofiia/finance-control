@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Finance Tracker{% endblock %}</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
+</head>
+<body>
+
+<header>
+    <nav class="navbar">
+        <a href="/dashboard">Dashboard</a>
+        <a href="/currency">Currency</a>
+        <a href="/goals">Goals</a>
+        <a href="/wishlist">Wishlist</a>
+
+        <div class="nav-auth">
+            <a href="/log">Login</a>
+            <a href="/reg">Register</a>
+        </div>
+    </nav>
+</header>
+
+<main class="container">
+    {% block content %}
+    <!-- page content -->
+    {% endblock %}
+</main>
+
+<footer>
+    <p>© 2026 Finance Tracker</p>
+</footer>
+
+<!-- JS -->
+<script src="{{ url_for('static', path='js/charts.js') }}"></script>
+
+{% block scripts %}{% endblock %}
+</body>
+</html>

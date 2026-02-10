@@ -10,6 +10,13 @@ from pydantic import BaseModel, Field, EmailStr
 from sqlmodel import Session, select
 
 from db.database import (User, Transaction, UserRead, TransactionCreate, create_db_and_tables, get_session)
+from fastapi.templating import Jinja2Templates
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi import Request
+
+
+templates = Jinja2Templates(directory="templates")
 
 # Налаштування безпеки
 with open('core/secret_key', 'r', encoding='utf-8') as file:
@@ -20,6 +27,13 @@ password_hash = PasswordHash.recommended()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 app = FastAPI(title="Finance Tracker API")
+
+# Статичні файли
+app.mount(
+    "/static",
+    StaticFiles(directory="static"),
+    name="static"
+)
 
 # Створюємо таблиці при запуску
 @app.on_event("startup")
@@ -67,6 +81,43 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], sessio
     user = session.exec(select(User).where(User.username == username)).first()
     if not user: raise credentials_exception
     return user
+
+# --- HTML ---
+@app.get("/log", response_class=HTMLResponse)
+def login_page(request: Request):
+    return templates.TemplateResponse(
+        "auth/login.html",
+        {"request": request}
+    )
+
+@app.get("/reg", response_class=HTMLResponse)
+def register_page(request: Request):
+    return templates.TemplateResponse(
+        "auth/register.html",
+        {"request": request}
+    )
+
+@app.get("/dashboard", response_class=HTMLResponse)
+def dashboard(
+    request: Request,
+    session: SessionDep,
+    user: Annotated[User, Depends(get_current_user)]
+):
+    txs = session.exec(
+        select(Transaction).where(Transaction.user_id == user.id)
+    ).all()
+
+    balance = sum(t.amount for t in txs)
+
+    return templates.TemplateResponse(
+        "dashboard.html",
+        {
+            "request": request,
+            "username": user.username,
+            "transactions": txs,
+            "balance": balance,
+        }
+    )
 
 # --- Ендпоінти користувачів ---
 

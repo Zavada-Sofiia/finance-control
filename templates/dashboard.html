@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<h1>Welcome, {{ username }}</h1>
+
+<p>Balance: {{ balance }}</p>
+
+<ul>
+    {% for tx in transactions %}
+        <li>{{ tx.category }} — {{ tx.amount }}</li>
+    {% endfor %}
+</ul>
+{% endblock %}

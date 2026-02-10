@@ -15,29 +15,9 @@ View the total current balance and the total count of transactions.
 
 ## 🛠 Tech Stack
 Language: Python 3.10+, HTML
-Framework: FastAPI 
-Database (ORM): SQLModel (SQLAlchemy + Pydantic) 
-Database Engine: SQLite 
+Framework: FastAPI
+Database (ORM): SQLModel (SQLAlchemy + Pydantic)
+Database Engine: SQLite
 Authentication: PyJWT, OAuth2PasswordBearer
 
 ### 📁 Project Structure
-app
-main.py: The entry point containing API endpoints, security logic, and business rules.
-database.py: Configuration for the database engine, session management, and table schemas (User, Transaction).
-finance_database.db: The SQLite database file (automatically generated on startup).
-models.py: 
-schemas.py:
-calculator.py:
-crud.py:
-auth.py:
-currency_service.py:
-templates
-base.html:
-login.html:
-register.html:
-dashboard.html:
-goals.html:
-wishlist.html:
-currency.html:
-<img width="253" height="586" alt="image" src="https://github.com/user-attachments/assets/09caa6d6-c86b-403e-ad1f-dbf892d7ccc5" />
-

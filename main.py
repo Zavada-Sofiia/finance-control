@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from typing import Annotated, List, Optional
 
-import jwt
+import jwt, sys
 from fastapi import FastAPI, HTTPException, status, Depends, Query, Request
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.templating import Jinja2Templates
@@ -10,29 +10,33 @@ from fastapi.responses import HTMLResponse
 from jwt.exceptions import InvalidTokenError
 from pwdlib import PasswordHash
 from sqlmodel import Session, select
+from contextlib import asynccontextmanager
+from pathlib import Path
 
-# Імпортуємо правильні частини
 from db.database import create_db_and_tables, get_session
 from db.models import User, Transaction, Goal, WishlistItem  # Моделі БД
 from schemas.schemas import UserCreate, UserRead, Token, TransactionCreate, TransactionRead # Pydantic схеми
 
 templates = Jinja2Templates(directory="templates")
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    create_db_and_tables()
+    yield
+
 # --- КОНФІГУРАЦІЯ ---
-SECRET_KEY = "CHANGE_THIS_TO_A_REAL_SECRET_KEY" # Захардкодив для прикладу, краще з env
+SECRET_KEY = Path(__file__).resolve().parent / "core" / "secret_key"
+SECRET_KEY = SECRET_KEY.read_text(encoding="utf-8").strip()
+
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 password_hash = PasswordHash.recommended()
-# Знайди цей рядок і додай auto_error=False
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token", auto_error=False)
-app = FastAPI(title="Finance Tracker API")
+app = FastAPI(title="Finance Tracker API", lifespan=lifespan)
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
-
-@app.on_event("startup")
-def on_startup():
-    create_db_and_tables()
 
 SessionDep = Annotated[Session, Depends(get_session)]
 
@@ -51,16 +55,13 @@ def create_access_token(data: dict):
 
 async def get_current_user(
     session: SessionDep,
-    request: Request,  # <--- Додаємо об'єкт Request, щоб читати куки
-    token: Annotated[Optional[str], Depends(oauth2_scheme)] # <--- Робимо Optional
+    request: Request,
+    token: Annotated[Optional[str], Depends(oauth2_scheme)]
 ) -> User:
 
-    # 1. Якщо FastAPI не знайшов токен у заголовку, шукаємо в куках
+    # Якщо FastAPI не знайшов токен у заголовку, шукаємо в куках
     if not token:
         token = request.cookies.get("access_token")
-
-    # Для налагодження (побачиш у терміналі, чи прийшов токен)
-    # print(f"DEBUG: Token from cookie/header: {token}")
 
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -68,13 +69,12 @@ async def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
 
-    # 2. Якщо токена ніде немає — тоді вже помилка
     if not token:
         raise credentials_exception
 
-    # 3. Валідація токена (стандартна логіка)
+    # Валідація токена
     try:
-        # Прибираємо префікс "Bearer ", якщо він раптом потрапив у куку (хоча зазвичай ні)
+        # Прибираємо "Bearer "
         if token.startswith("Bearer "):
             token = token.split(" ")[1]
 
@@ -117,11 +117,23 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], sess
         raise HTTPException(status_code=400, detail="Incorrect username or password")
 
     token = create_access_token(data={"sub": user.username})
-    return {"access_token": token, "token_type": "bearer"}
+
+    response = JSONResponse({
+        "access_token": token,
+        "token_type": "bearer"
+    })
+    response.set_cookie(
+        key="access_token",
+        value=token,
+        httponly=True,
+        samesite="lax"
+    )
+
+    return response
 
 # --- Ендпоінти транзакцій ---
 
-@app.post("/transactions/", response_model=Transaction)
+@app.post("/transactions/", response_model=TransactionRead)
 def create_transaction(
     data: TransactionCreate,
     session: SessionDep,
@@ -161,7 +173,6 @@ def delete_transaction(
 
 @app.get("/balance")
 def get_balance(session: SessionDep, user: Annotated[User, Depends(get_current_user)]):
-    # Більш ефективний спосіб підрахунку балансу через SQL
     transactions = session.exec(select(Transaction).where(Transaction.user_id == user.id)).all()
     total = sum(t.amount for t in transactions)
     return {"balance": total, "count": len(transactions)}
@@ -192,6 +203,7 @@ def dashboard(
     session: SessionDep,
     user: Annotated[User, Depends(get_current_user)]
 ):
+
     txs = session.exec(
         select(Transaction).where(Transaction.user_id == user.id)
     ).all()
@@ -210,7 +222,7 @@ def dashboard(
 
 from fastapi.responses import RedirectResponse
 
-@app.get("/logout")
+@app.post("/logout")
 def logout():
     response = RedirectResponse(url="/log")
     response.delete_cookie("access_token")

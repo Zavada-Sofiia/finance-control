@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from typing import Annotated, List, Optional
 
-import jwt, sys
+import jwt
 from fastapi import FastAPI, HTTPException, status, Depends, Query, Request
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.templating import Jinja2Templates
@@ -59,7 +59,7 @@ async def get_current_user(
     token: Annotated[Optional[str], Depends(oauth2_scheme)]
 ) -> User:
 
-    # Якщо FastAPI не знайшов токен у заголовку, шукаємо в куках
+    # Якщо FastAPI не знайшов токен у заголовку -> шукаємо в куках
     if not token:
         token = request.cookies.get("access_token")
 
@@ -118,18 +118,10 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], sess
 
     token = create_access_token(data={"sub": user.username})
 
-    response = JSONResponse({
+    return {
         "access_token": token,
         "token_type": "bearer"
-    })
-    response.set_cookie(
-        key="access_token",
-        value=token,
-        httponly=True,
-        samesite="lax"
-    )
-
-    return response
+    }
 
 # --- Ендпоінти транзакцій ---
 
@@ -222,8 +214,9 @@ def dashboard(
 
 from fastapi.responses import RedirectResponse
 
-@app.post("/logout")
+@app.get("/logout")
 def logout():
     response = RedirectResponse(url="/log")
+
     response.delete_cookie("access_token")
     return response

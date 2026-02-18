@@ -1,7 +1,24 @@
-import math
+'''
+Module: goal_calculator
+
+This module provides the GoalCalculator class for estimating
+the time required to reach a financial goal based on current
+savings, monthly contributions, and possible scenario changes.
+'''
 from typing import Optional
 class GoalCalculator:
+    '''
+    Calculates how long it will take to reach a savings goal and
+    allows simulation of alternative financial scenarios.
+    '''
     def __init__(self, target_amount: float, monthly_contribution: float, current_savings: float = 0):
+        '''
+        Initialize the goal calculator.
+
+        :param target_amount: Desired savings goal amount.
+        :param monthly_contribution: Amount added to savings each month.
+        :param current_savings: Current amount already saved (default is 0).
+        '''
         self.target_amount = target_amount
         self.monthly_contribution = monthly_contribution
         self.current_savings = current_savings

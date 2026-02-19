@@ -1,0 +1,60 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+:root {
+  /* твої */
+  --color-peach: #fff5f0;
+  --color-beige: #faf8f5;
+  --color-lavender: #e8dcf8;
+  --color-light-green: #d4f0dd;
+  --color-soft-yellow: #fef7d5;
+  --color-soft-pink: #ffd6e5;
+
+  /* shadcn / calendar REQUIRED */
+  --background: 0 0% 100%;
+  --foreground: 222.2 47.4% 11.2%;
+
+  --primary: 262 83% 58%;              /* lavender-ish */
+  --primary-foreground: 0 0% 100%;
+
+  --accent: 262 100% 95%;
+  --accent-foreground: 262 40% 30%;
+
+  --muted: 210 40% 96%;
+  --muted-foreground: 215.4 16.3% 46.9%;
+
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+}
+
+
+body {
+  margin: 0;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #fef9f5;
+  min-height: 100vh;
+  color: #2d2d2d;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+h1 {
+  font-size: 3rem;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+h2 {
+  font-size: 2rem;
+  line-height: 1.2;
+}
+
+h3 {
+  font-size: 1.5rem;
+  line-height: 1.3;
+}

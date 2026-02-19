@@ -28,9 +28,29 @@ class TransactionRead(TransactionCreate):
     id: int
     timestamp: datetime
 
+class WishlistCreate(BaseModel):
+    name: str
+    price: float
+    priority: int = 1
+
+
+class WishlistRead(WishlistCreate):
+    id: int
+    is_bought: bool
+
+# --- Goal CRUD Schemas ---
+# class GoalCreate(BaseModel):
+#     title: str
+#     target_amount: float
+#     monthly_contribution: float
+
+# class GoalRead(GoalCreate):
+#     id: int
+#     current_savings: float
+
 # --- Goal/Forecast Schemas ---
-class GoalForecast(BaseModel):
-    target_amount: float
-    monthly_contribution: float
-    current_savings: float = 0
-    extra_expense: Optional[float] = 0
+#class GoalForecast(BaseModel):
+    #target_amount: float
+    #monthly_contribution: float
+    #current_savings: float = 0
+    #extra_expense: Optional[float] = 0

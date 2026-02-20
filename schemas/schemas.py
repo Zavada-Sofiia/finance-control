@@ -16,7 +16,7 @@ class UserCreate(BaseModel):
 class UserRead(BaseModel):
     id: int
     username: str
-    email: Optional[str]
+    email: Optional[EmailStr] = Field(default=None, index=True)
 
 # --- Transaction Schemas ---
 class TransactionCreate(BaseModel):

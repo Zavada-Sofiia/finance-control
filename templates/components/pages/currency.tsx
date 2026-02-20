@@ -38,56 +38,56 @@ export function Currency() {
     <div className="min-h-screen pb-16">
       <Toaster position="top-center" richColors />
       <Navigation />
-
-      <div className="max-w-6xl mx-auto px-8 py-12">
+      <div className="max-w-6xl mx-auto px-4 md:px-8 py-8 md:py-12">
         <div className="space-y-8">
           <div>
-            <h1 className="text-5xl font-bold mb-2">Exchange rates</h1>
+            <h1 className="text-3xl md:text-5xl font-bold mb-2">Exchange rates</h1>
             <p className="text-gray-600">Current currency exchange rates</p>
           </div>
 
-          <div className="grid grid-cols-2 gap-8 items-start">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
             {/* Left: Table */}
             <div className="space-y-6">
               <div className="bg-white rounded-2xl overflow-hidden border border-gray-200 shadow-sm">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-gray-200 bg-gray-50">
-                      <th className="text-left py-3 px-4 font-medium text-gray-600 text-sm">Currency</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-600 text-sm">Buy</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-600 text-sm">Sell</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rates.map((rate, index) => (
-                      <tr key={index} className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors">
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-2">
-                            <span className="text-2xl">{rate.flag}</span>
-                            <span className="font-medium">{rate.name}</span>
-                            {rate.trend && (
-                              <TrendingUp
-                                className={`w-4 h-4 ${rate.trend === 'up' ? 'text-green-500' : 'text-red-500 rotate-180'}`}
-                              />
-                            )}
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 text-gray-900">{rate.buy}</td>
-                        <td className="py-3 px-4 text-gray-900">{rate.sell}</td>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-gray-200 bg-gray-50">
+                        <th className="text-left py-3 px-4 font-medium text-gray-600 text-sm">Currency</th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-600 text-sm">Buy</th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-600 text-sm">Sell</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {rates.map((rate, index) => (
+                        <tr key={index} className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors">
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-2">
+                              <span className="text-2xl">{rate.flag}</span>
+                              <span className="font-medium">{rate.name}</span>
+                              {rate.trend && (
+                                <TrendingUp
+                                  className={`w-4 h-4 ${rate.trend === 'up' ? 'text-green-500' : 'text-red-500 rotate-180'}`}
+                                />
+                              )}
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-gray-900">{rate.buy}</td>
+                          <td className="py-3 px-4 text-gray-900">{rate.sell}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={handleRefresh}
                   className="flex-1 py-3.5 rounded-full bg-yellow-300 text-gray-900 font-medium hover:bg-yellow-400 transition-colors"
                 >
                   Оновити курси
                 </button>
-
                 <Link
                   to="/statistics"
                   onClick={() => sessionStorage.setItem('fromCurrency', 'true')}
@@ -98,8 +98,8 @@ export function Currency() {
               </div>
             </div>
 
-            {/* Right: Illustration */}
-            <div className="flex flex-col items-center justify-end">
+            {/* Right: Illustration — прихована на мобільному */}
+            <div className="hidden md:flex flex-col items-center justify-end">
               <CurrencyImg />
             </div>
           </div>

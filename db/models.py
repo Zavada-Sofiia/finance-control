@@ -16,7 +16,6 @@ class User(SQLModel, table=True):
     # === СТРІЛКИ (ЗВ'ЯЗКИ) ===
     # Один User має багато Transactions, Goals, WishlistItems
     transactions: List["Transaction"] = Relationship(back_populates="user")
-    goals: List["Goal"] = Relationship(back_populates="owner")
     wishlist_items: List["WishlistItem"] = Relationship(back_populates="owner")
 
 

@@ -35,33 +35,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // ---------- LOGIN ----------
   const login = async (username: string, password: string) => {
-    try {
-      const res = await fetch("/token", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: new URLSearchParams({
-          username,
-          password,
-        }),
-      });
+  try {
+    const res = await fetch("/token", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        username,
+        password,
+      }),
+    });
 
-      if (!res.ok) return false;
+    if (!res.ok) return false;
 
-      const data = await res.json();
+    const data = await res.json();
 
-      localStorage.setItem("access_token", data.access_token);
-      localStorage.setItem("user", JSON.stringify({ username }));
+    localStorage.setItem("access_token", data.access_token);
+    localStorage.setItem("user", JSON.stringify({ username }));
 
-      setToken(data.access_token);
-      setUser({ username });
+    setToken(data.access_token);
+    setUser({ username });
 
-      return true;
-    } catch {
-      return false;
-    }
-  };
+    return true;
+  } catch {
+    return false;
+  }
+};
 
   // ---------- REGISTER ----------
   const register = async (username: string, email: string, password: string) => {

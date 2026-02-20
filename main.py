@@ -13,6 +13,7 @@ from fastapi.staticfiles import StaticFiles
 from jwt.exceptions import InvalidTokenError
 from pwdlib import PasswordHash
 from sqlmodel import Session, select
+from fastapi.middleware.cors import CORSMiddleware
 
 from db.database import create_db_and_tables, get_session
 from db.models import User, Transaction
@@ -172,9 +173,23 @@ def register_and_login(
     session.commit()
     session.refresh(db_user)
 
-    # створюємо токен після реєстрації
     token = create_access_token(data={"sub": db_user.username})
-    return {"access_token": token, "token_type": "bearer"}
+
+    response = JSONResponse(content={
+        "access_token": token,
+        "token_type": "bearer"
+    })
+
+    response.set_cookie(
+        key="access_token",
+        value=f"Bearer {token}",
+        httponly=True,
+        max_age=1800,
+        secure=False,
+        samesite="lax"
+    )
+
+    return response
 
 
 
@@ -184,18 +199,36 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], sess
     Виконує автентифікацію користувача.
     Перевіряє username та пароль
     і повертає JWT токен.
-
-    Authenticates a user.
-    Verifies username and password
-    and returns a JWT token.
     """
+    # Логування отриманих даних для кращого розуміння, що відбувається
+    print(f"Form data: {form_data.username} - {form_data.password}")
+
+    # Перевіряємо, чи існує користувач в базі даних
     user = session.exec(select(User).where(User.username == form_data.username)).first()
+
+    # Логування користувача, щоб переконатись, що його знайшли
+    print(f"User found in DB: {user}")
+
     if not user or not verify_password(form_data.password, user.hashed_password):
+        print(f"Incorrect password or user not found.")
         raise HTTPException(status_code=400, detail="Incorrect username or password")
 
+    # Створення токену
     token = create_access_token(data={"sub": user.username})
-    return {"access_token": token, "token_type": "bearer"}
 
+    # Встановлення токену в cookie
+    response = JSONResponse(content={"access_token": token, "token_type": "bearer"})
+
+    response.set_cookie(
+        key="access_token",
+        value=f"Bearer {token}",
+        httponly=True,
+        max_age=1800,
+        secure=False,
+        samesite="lax"
+    )
+
+    return response
 # ТРЕКЕР
 @app.post("/transactions/", response_model=TransactionRead)
 def create_transaction(
@@ -282,3 +315,25 @@ def logout():
     response = RedirectResponse(url="/")
     response.delete_cookie("access_token")
     return response
+
+
+@app.get("/favicon.ico")
+def favicon():
+    """
+    Повертає іконку для favicon.
+    """
+    # Шлях до іконки
+    favicon_path = Path(__file__).resolve().parent / "templates" / "assets" / "favicon.ico"
+
+    # Повертаємо іконку як файл
+    return FileResponse(favicon_path)
+
+from fastapi.responses import HTMLResponse
+
+@app.get("/app/{path:path}", response_class=HTMLResponse)
+def catch_all(path: str):
+    """
+    Перенаправляє всі шляхи до фронтенд-застосунку.
+    Це дозволяє SPA працювати з історією маршрутизації, коли користувач перезавантажує сторінку.
+    """
+    return FileResponse("templates/dist/index.html")

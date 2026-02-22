@@ -1,6 +1,8 @@
 """
 Finance Control App — FastAPI + React
 """
+from services.currency_service import currency_service
+
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Annotated, List, Optional
@@ -34,7 +36,10 @@ async def lifespan(app: FastAPI):
     when the application starts.
     """
     create_db_and_tables()
+    await currency_service.fetch_rates()
+    currency_service.start()
     yield
+    currency_service.stop()
 
 # ---------- CONFIG ----------
 SECRET_KEY = (Path(__file__).resolve().parent / "core" / "secret_key").read_text().strip()
@@ -282,3 +287,18 @@ def logout():
     response = RedirectResponse(url="/")
     response.delete_cookie("access_token")
     return response
+@app.get("/api/currency/rates")
+async def get_currency_rates():
+    rates = currency_service.current_rates or await currency_service.fetch_rates()
+    return {
+        "rates": rates,
+        "last_update": currency_service.last_update.strftime("%H:%M:%S") if currency_service.last_update else None
+    }
+
+@app.get("/api/currency/update")
+async def update_currency_rates():
+    rates = await currency_service.fetch_rates()
+    return {
+        "rates": rates,
+        "last_update": currency_service.last_update.strftime("%H:%M:%S")
+    }

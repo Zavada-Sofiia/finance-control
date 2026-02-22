@@ -2,37 +2,28 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { Navigation } from '../../Navigation';
 import { useAuth } from '../../contexts/AuthContext';
+import axios from 'axios';
 import signup_back_Img from '../../assets/login_back_img.png';
 
 export function SignupImg() {
   return <img src={signup_back_Img} alt="Signup" className="w-full h-auto object-contain" />;
 }
 
+export function Signup() {
+  const navigate = useNavigate();
+  const { login } = useAuth();
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
-  export function Signup() {
-    const navigate = useNavigate();
-    const { login } = useAuth();
-    const [username, setUsername] = useState('');
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-
-    const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const formData = {
-        username,
-        email,
-        password,
-      };
-
+      const formData = { username, email, password };
       const res = await axios.post("/register", formData, {
         headers: { "Content-Type": "application/json" },
       });
-
-      // зберігаємо токен
       login(res.data.access_token);
-
-      // редірект на трекер
       navigate("/tracker");
     } catch (err: any) {
       alert(err.response?.data?.detail || "Error registering");
@@ -42,18 +33,17 @@ export function SignupImg() {
   return (
     <div className="min-h-screen">
       <Navigation />
+      <div className="max-w-6xl mx-auto px-4 md:px-8 py-8 md:py-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16 items-center">
 
-      <div className="max-w-6xl mx-auto px-8 py-16">
-        <div className="grid grid-cols-2 gap-16 items-center">
           {/* Left: Form */}
           <div className="space-y-8">
             <div>
-              <h1 className="text-5xl font-bold mb-3">Create an account</h1>
+              <h1 className="text-3xl md:text-5xl font-bold mb-3">Create an account</h1>
               <p className="text-gray-600">
-                Join Finance Control and to Change your life activity
+                Join Finance Control and Change your life activity
               </p>
             </div>
-
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <input
@@ -65,7 +55,6 @@ export function SignupImg() {
                   required
                 />
               </div>
-
               <div>
                 <input
                   type="email"
@@ -76,7 +65,6 @@ export function SignupImg() {
                   required
                 />
               </div>
-
               <div>
                 <input
                   type="password"
@@ -87,7 +75,6 @@ export function SignupImg() {
                   required
                 />
               </div>
-
               <button
                 type="submit"
                 className="w-full py-3.5 rounded-full bg-purple-300 text-gray-900 font-medium hover:bg-purple-400 transition-colors"
@@ -95,7 +82,6 @@ export function SignupImg() {
                 Sign up
               </button>
             </form>
-
             <div className="text-center text-sm">
               <span className="text-gray-600">Already have an account? </span>
               <Link to="/login" className="text-purple-600 hover:text-purple-700 font-medium">
@@ -104,10 +90,11 @@ export function SignupImg() {
             </div>
           </div>
 
-          {/* Right: Illustration */}
-          <div className="flex justify-center">
+          {/* Right: Illustration — прихована на мобільному */}
+          <div className="hidden md:flex justify-center">
             <SignupImg />
           </div>
+
         </div>
       </div>
     </div>

@@ -1,60 +1,81 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { Navigation } from '../../Navigation';
+import { Navigation } from '../Navigation';
 import { useAuth } from '../../contexts/AuthContext';
-import axios from 'axios';
-import signup_back_Img from '../../assets/login_back_img.png';
-
-export function SignupImg() {
-  return <img src={signup_back_Img} alt="Signup" className="w-full h-auto object-contain" />;
-}
+import signupImg from 'figma:asset/2b47de896dd28d75efb59df4b2d7e597225f5c64.png';
 
 export function Signup() {
   const navigate = useNavigate();
   const { login } = useAuth();
-  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      const formData = { username, email, password };
-      const res = await axios.post("/register", formData, {
-        headers: { "Content-Type": "application/json" },
-      });
-      login(res.data.access_token);
-      navigate("/tracker");
-    } catch (err: any) {
-      alert(err.response?.data?.detail || "Error registering");
+
+    // Reset errors
+    setEmailError('');
+    setPasswordError('');
+
+    // Validate email is not empty
+    if (!email.trim()) {
+      setEmailError('Please enter your email address');
+      return;
     }
+
+    // Validate email format
+    if (!validateEmail(email)) {
+      setEmailError('Please enter a valid email address');
+      return;
+    }
+
+    // Validate password is not empty
+    if (!password) {
+      setPasswordError('Please enter a password');
+      return;
+    }
+
+    // Validate confirm password is not empty
+    if (!confirmPassword) {
+      setPasswordError('Please confirm your password');
+      return;
+    }
+
+    // Validate passwords match
+    if (password !== confirmPassword) {
+      setPasswordError('Passwords do not match');
+      return;
+    }
+
+    // If all validations pass
+    login();
+    navigate('/tracker');
   };
 
   return (
     <div className="min-h-screen">
       <Navigation />
-      <div className="max-w-6xl mx-auto px-4 md:px-8 py-8 md:py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16 items-center">
 
+      <div className="max-w-6xl mx-auto px-8 py-16">
+        <div className="grid grid-cols-2 gap-16 items-center">
           {/* Left: Form */}
           <div className="space-y-8">
             <div>
-              <h1 className="text-3xl md:text-5xl font-bold mb-3">Create an account</h1>
+              <h1 className="text-5xl font-bold mb-3">Create an account</h1>
               <p className="text-gray-600">
-                Join Finance Control and Change your life activity
+                Join Finance Control and to Change your life activity
               </p>
             </div>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Username"
-                  className="w-full px-5 py-3.5 rounded-full border-2 border-gray-200 focus:outline-none focus:border-purple-300 bg-white"
-                  required
-                />
-              </div>
+
+            <form onSubmit={handleSubmit} noValidate className="space-y-4">
               <div>
                 <input
                   type="email"
@@ -62,9 +83,10 @@ export function Signup() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Email"
                   className="w-full px-5 py-3.5 rounded-full border-2 border-gray-200 focus:outline-none focus:border-purple-300 bg-white"
-                  required
                 />
+                {emailError && <p className="text-red-500 text-sm mt-2 ml-5">{emailError}</p>}
               </div>
+
               <div>
                 <input
                   type="password"
@@ -72,9 +94,20 @@ export function Signup() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Password"
                   className="w-full px-5 py-3.5 rounded-full border-2 border-gray-200 focus:outline-none focus:border-purple-300 bg-white"
-                  required
                 />
               </div>
+
+              <div>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm Password"
+                  className="w-full px-5 py-3.5 rounded-full border-2 border-gray-200 focus:outline-none focus:border-purple-300 bg-white"
+                />
+                {passwordError && <p className="text-red-500 text-sm mt-2 ml-5">{passwordError}</p>}
+              </div>
+
               <button
                 type="submit"
                 className="w-full py-3.5 rounded-full bg-purple-300 text-gray-900 font-medium hover:bg-purple-400 transition-colors"
@@ -82,6 +115,7 @@ export function Signup() {
                 Sign up
               </button>
             </form>
+
             <div className="text-center text-sm">
               <span className="text-gray-600">Already have an account? </span>
               <Link to="/login" className="text-purple-600 hover:text-purple-700 font-medium">
@@ -90,11 +124,14 @@ export function Signup() {
             </div>
           </div>
 
-          {/* Right: Illustration — прихована на мобільному */}
-          <div className="hidden md:flex justify-center">
-            <SignupImg />
+          {/* Right: Illustration */}
+          <div className="flex justify-center">
+            <img
+              src={signupImg}
+              alt="Finance illustration"
+              className="w-full max-w-lg h-auto object-contain"
+            />
           </div>
-
         </div>
       </div>
     </div>

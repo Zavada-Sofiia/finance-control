@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, model_validator
 from typing import Optional
 from datetime import datetime
 
@@ -9,13 +9,18 @@ class Token(BaseModel):
 
 # --- User Schemas ---
 class UserCreate(BaseModel):
-    username: str = Field(..., min_length=3, max_length=20)
+    password: str = Field(..., min_length=8)
     password: str = Field(..., min_length=8)
     email: Optional[EmailStr] = None
 
+    @model_validator(mode="after")
+    def passwords_match(self):
+        if self.password != self.password_confirm:
+            raise ValueError("Passwords do not match")
+        return self
+
 class UserRead(BaseModel):
     id: int
-    username: str
     email: Optional[str]
 
 # --- Transaction Schemas ---

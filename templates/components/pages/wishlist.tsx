@@ -16,11 +16,12 @@ interface WishlistItem {
 
 export function Wishlist() {
   const [items, setItems] = useState<WishlistItem[]>([
-    { id: '1', name: 'Бюджетна надпакет', amount: 9000, checked: false },
-    { id: '2', name: 'Захід подорожі', amount: 25000, checked: false },
-    { id: '3', name: 'Новий ноутбук', amount: 35000, checked: false },
-    { id: '4', name: 'Відпустка', amount: 40000, checked: true },
+    { id: '1', name: 'Budget package', amount: 9000, checked: false },
+    { id: '2', name: 'Western trip', amount: 25000, checked: false },
+    { id: '3', name: 'New laptop', amount: 35000, checked: false },
+    { id: '4', name: 'Vacation', amount: 40000, checked: true },
   ]);
+
   const [showModal, setShowModal] = useState(false);
   const [newItemName, setNewItemName] = useState('');
   const [newItemAmount, setNewItemAmount] = useState('');
@@ -57,7 +58,6 @@ export function Wishlist() {
       <Navigation />
       <div className="max-w-6xl mx-auto px-4 md:px-8 py-8 md:py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
-
           {/* Left: Wishlist */}
           <div className="space-y-6 md:space-y-8">
             <div className="flex items-center justify-between">
@@ -133,7 +133,7 @@ export function Wishlist() {
             </div>
           </div>
 
-          {/* Right: Illustration — прихована на мобільному */}
+          {/* Right: Illustration */}
           <div className="hidden md:flex flex-col items-center justify-center space-y-8">
             <WishlistImg />
             <div className="bg-white rounded-3xl p-6 border border-gray-200 max-w-sm">
@@ -144,14 +144,13 @@ export function Wishlist() {
             </div>
           </div>
 
-          {/* Pro Tip на мобільному */}
+          {/* Pro Tip mobile */}
           <div className="md:hidden bg-white rounded-3xl p-6 border border-gray-200">
             <h3 className="font-bold mb-2">Pro Tip</h3>
             <p className="text-sm text-gray-600">
               Break down large goals into smaller milestones to stay motivated and track progress more effectively.
             </p>
           </div>
-
         </div>
       </div>
 
@@ -168,15 +167,42 @@ export function Wishlist() {
             <form onSubmit={handleAddItem} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Goal Name</label>
-                <input type="text" value={newItemName} onChange={(e) => setNewItemName(e.target.value)} placeholder="Enter goal name" className="w-full px-5 py-3.5 rounded-full border-2 border-gray-200 focus:outline-none focus:border-purple-300 bg-white" required />
+                <input
+                  type="text"
+                  value={newItemName}
+                  onChange={(e) => setNewItemName(e.target.value)}
+                  placeholder="Enter goal name"
+                  className="w-full px-5 py-3.5 rounded-full border-2 border-gray-200 focus:outline-none focus:border-purple-300 bg-white"
+                  required
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Target Amount</label>
-                <input type="number" value={newItemAmount} onChange={(e) => setNewItemAmount(e.target.value)} placeholder="Enter amount" className="w-full px-5 py-3.5 rounded-full border-2 border-gray-200 focus:outline-none focus:border-purple-300 bg-white" required min="0" step="0.01" />
+                <input
+                  type="number"
+                  value={newItemAmount}
+                  onChange={(e) => setNewItemAmount(e.target.value)}
+                  placeholder="Enter amount"
+                  className="w-full px-5 py-3.5 rounded-full border-2 border-gray-200 focus:outline-none focus:border-purple-300 bg-white"
+                  required
+                  min="0"
+                  step="0.01"
+                />
               </div>
               <div className="flex gap-3 pt-4">
-                <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-3.5 rounded-full bg-gray-100 text-gray-900 font-medium hover:bg-gray-200 transition-colors">Cancel</button>
-                <button type="submit" className="flex-1 py-3.5 rounded-full bg-yellow-300 text-gray-900 font-medium hover:bg-yellow-400 transition-colors">Add Goal</button>
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="flex-1 py-3.5 rounded-full bg-gray-100 text-gray-900 font-medium hover:bg-gray-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-3.5 rounded-full bg-yellow-300 text-gray-900 font-medium hover:bg-yellow-400 transition-colors"
+                >
+                  Add Goal
+                </button>
               </div>
             </form>
           </div>

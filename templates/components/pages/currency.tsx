@@ -22,11 +22,8 @@ interface RatesResponse {
   last_update: string | null;
 }
 
-// Форматування числа: 40.4 -> "40.40", 3.2634 -> "3.2634"
 function formatRate(value: number): string {
-  // Показуємо мінімум 2 знаки після коми, максимум 4
   const str = value.toFixed(4);
-  // Прибираємо зайві нулі, але залишаємо мінімум 2
   const trimmed = str.replace(/(\.\d{2,})0+$/, '$1');
   return trimmed;
 }
@@ -46,7 +43,6 @@ export function Currency() {
     setLastUpdate(data.last_update);
   };
 
-  // Завантаження при першому рендері
   const loadRates = useCallback(async () => {
     try {
       const res = await fetch('/api/currency/rates');
@@ -54,7 +50,7 @@ export function Currency() {
       const data: RatesResponse = await res.json();
       parseRates(data);
     } catch {
-      toast.error('Не вдалося завантажити курси валют');
+      toast.error('Failed to load exchange rates');
     } finally {
       setLoading(false);
     }
@@ -62,12 +58,10 @@ export function Currency() {
 
   useEffect(() => {
     loadRates();
-    // Автоматичне оновлення кожні 30 секунд
     const interval = setInterval(loadRates, 30_000);
     return () => clearInterval(interval);
   }, [loadRates]);
 
-  // Ручне оновлення через кнопку
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
@@ -75,12 +69,12 @@ export function Currency() {
       if (!res.ok) throw new Error('Failed to update');
       const data: RatesResponse = await res.json();
       parseRates(data);
-      toast.success('Курси валют успішно оновлено!', {
-        description: lastUpdate ? `Оновлено о ${data.last_update}` : 'Актуальні дані отримано',
+      toast.success('Exchange rates updated!', {
+        description: lastUpdate ? `Updated at ${data.last_update}` : 'Latest data received',
         duration: 3000,
       });
     } catch {
-      toast.error('Помилка оновлення курсів');
+      toast.error('Failed to update rates');
     } finally {
       setRefreshing(false);
     }
@@ -97,7 +91,7 @@ export function Currency() {
             <p className="text-gray-600">
               Current currency exchange rates
               {lastUpdate && (
-                <span className="ml-2 text-sm text-gray-400">· оновлено о {lastUpdate}</span>
+                <span className="ml-2 text-sm text-gray-400">· updated at {lastUpdate}</span>
               )}
             </p>
           </div>
@@ -117,7 +111,6 @@ export function Currency() {
                     </thead>
                     <tbody>
                       {loading ? (
-                        // Skeleton loader
                         Array.from({ length: 7 }).map((_, i) => (
                           <tr key={i} className="border-b border-gray-100">
                             <td className="py-3 px-4">
@@ -172,7 +165,7 @@ export function Currency() {
                   className="flex-1 py-3.5 rounded-full bg-yellow-300 text-gray-900 font-medium hover:bg-yellow-400 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
                 >
                   <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-                  {refreshing ? 'Оновлення...' : 'Оновити курси'}
+                  {refreshing ? 'Updating...' : 'Refresh rates'}
                 </button>
                 <Link
                   to="/statistics"

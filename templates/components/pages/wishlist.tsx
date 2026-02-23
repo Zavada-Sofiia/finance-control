@@ -1,11 +1,7 @@
 import { useState } from 'react';
-import { Navigation } from '../../Navigation';
+import { Navigation } from '../Navigation';
 import { Plus, X } from 'lucide-react';
-import wishlist_back_Img from '../../assets/wish_list_back_img.png';
-
-export function WishlistImg() {
-  return <img src={wishlist_back_Img} alt="Savings" className="w-full h-auto object-contain" />;
-}
+import wishlistImg from 'figma:asset/1b21fb97ecb8e74dc287f4f3ab0aa9f45ce2227a.png';
 
 interface WishlistItem {
   id: string;
@@ -21,23 +17,29 @@ export function Wishlist() {
     { id: '3', name: 'Новий ноутбук', amount: 35000, checked: false },
     { id: '4', name: 'Відпустка', amount: 40000, checked: true },
   ]);
+
   const [showModal, setShowModal] = useState(false);
   const [newItemName, setNewItemName] = useState('');
   const [newItemAmount, setNewItemAmount] = useState('');
 
   const toggleItem = (id: string) => {
-    setItems(items.map(item => item.id === id ? { ...item, checked: !item.checked } : item));
+    setItems(items.map(item =>
+      item.id === id ? { ...item, checked: !item.checked } : item
+    ));
   };
 
   const handleAddItem = (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!newItemName || !newItemAmount) return;
+
     const newItem: WishlistItem = {
       id: Date.now().toString(),
       name: newItemName,
       amount: parseFloat(newItemAmount),
       checked: false,
     };
+
     setItems([...items, newItem]);
     setNewItemName('');
     setNewItemAmount('');
@@ -55,14 +57,14 @@ export function Wishlist() {
   return (
     <div className="min-h-screen pb-16">
       <Navigation />
-      <div className="max-w-6xl mx-auto px-4 md:px-8 py-8 md:py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
 
+      <div className="max-w-6xl mx-auto px-8 py-12">
+        <div className="grid grid-cols-2 gap-12">
           {/* Left: Wishlist */}
-          <div className="space-y-6 md:space-y-8">
+          <div className="space-y-8">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl md:text-5xl font-bold mb-2">Wishlist</h1>
+                <h1 className="text-5xl font-bold mb-2">Wishlist</h1>
                 <p className="text-gray-600">Track your financial goals</p>
               </div>
             </div>
@@ -89,7 +91,7 @@ export function Wishlist() {
               <h3 className="font-medium text-gray-600">Your goals</h3>
               <button
                 onClick={() => setShowModal(true)}
-                className="px-5 py-2.5 rounded-full bg-yellow-300 text-gray-900 font-medium hover:bg-yellow-400 transition-colors flex items-center gap-2"
+                className="px-6 py-2.5 rounded-full bg-yellow-300 text-gray-900 font-medium hover:bg-yellow-400 transition-colors flex items-center gap-2"
               >
                 <Plus className="w-4 h-4" />
                 Add Goal
@@ -100,12 +102,16 @@ export function Wishlist() {
               {items.map((item) => (
                 <div
                   key={item.id}
-                  className="flex items-center justify-between py-4 px-4 md:px-6 bg-white rounded-2xl border border-gray-200 group hover:shadow-md transition-shadow"
+                  className="flex items-center justify-between py-4 px-6 bg-white rounded-2xl border border-gray-200 group hover:shadow-md transition-shadow"
                 >
-                  <div className="flex items-center gap-3 md:gap-4 flex-1">
+                  <div className="flex items-center gap-4 flex-1">
                     <button
                       onClick={() => toggleItem(item.id)}
-                      className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors flex-shrink-0 ${item.checked ? 'bg-purple-400 border-purple-400' : 'border-gray-300'}`}
+                      className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors flex-shrink-0 ${
+                        item.checked
+                          ? 'bg-purple-400 border-purple-400'
+                          : 'border-gray-300'
+                      }`}
                     >
                       {item.checked && (
                         <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -117,8 +123,8 @@ export function Wishlist() {
                       {item.name}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2 md:gap-3">
-                    <span className={`font-semibold text-sm md:text-base ${item.checked ? 'text-gray-400' : 'text-gray-900'}`}>
+                  <div className="flex items-center gap-3">
+                    <span className={`font-semibold ${item.checked ? 'text-gray-400' : 'text-gray-900'}`}>
                       ₴ {item.amount.toLocaleString()}
                     </span>
                     <button
@@ -133,9 +139,14 @@ export function Wishlist() {
             </div>
           </div>
 
-          {/* Right: Illustration — прихована на мобільному */}
-          <div className="hidden md:flex flex-col items-center justify-center space-y-8">
-            <WishlistImg />
+          {/* Right: Illustrations */}
+          <div className="flex flex-col items-center justify-center space-y-8">
+            <img
+              src={wishlistImg}
+              alt="Savings"
+              className="w-full h-auto object-contain"
+            />
+
             <div className="bg-white rounded-3xl p-6 border border-gray-200 max-w-sm">
               <h3 className="font-bold mb-2">Pro Tip</h3>
               <p className="text-sm text-gray-600">
@@ -143,40 +154,61 @@ export function Wishlist() {
               </p>
             </div>
           </div>
-
-          {/* Pro Tip на мобільному */}
-          <div className="md:hidden bg-white rounded-3xl p-6 border border-gray-200">
-            <h3 className="font-bold mb-2">Pro Tip</h3>
-            <p className="text-sm text-gray-600">
-              Break down large goals into smaller milestones to stay motivated and track progress more effectively.
-            </p>
-          </div>
-
         </div>
       </div>
 
       {/* Add Goal Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
-          <div className="bg-white rounded-3xl p-6 md:p-8 w-full max-w-md">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-3xl p-8 w-full max-w-md">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold">Add New Goal</h2>
               <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600">
                 <X className="w-6 h-6" />
               </button>
             </div>
+
             <form onSubmit={handleAddItem} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Goal Name</label>
-                <input type="text" value={newItemName} onChange={(e) => setNewItemName(e.target.value)} placeholder="Enter goal name" className="w-full px-5 py-3.5 rounded-full border-2 border-gray-200 focus:outline-none focus:border-purple-300 bg-white" required />
+                <input
+                  type="text"
+                  value={newItemName}
+                  onChange={(e) => setNewItemName(e.target.value)}
+                  placeholder="Enter goal name"
+                  className="w-full px-5 py-3.5 rounded-full border-2 border-gray-200 focus:outline-none focus:border-purple-300 bg-white"
+                  required
+                />
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Target Amount</label>
-                <input type="number" value={newItemAmount} onChange={(e) => setNewItemAmount(e.target.value)} placeholder="Enter amount" className="w-full px-5 py-3.5 rounded-full border-2 border-gray-200 focus:outline-none focus:border-purple-300 bg-white" required min="0" step="0.01" />
+                <input
+                  type="number"
+                  value={newItemAmount}
+                  onChange={(e) => setNewItemAmount(e.target.value)}
+                  placeholder="Enter amount"
+                  className="w-full px-5 py-3.5 rounded-full border-2 border-gray-200 focus:outline-none focus:border-purple-300 bg-white"
+                  required
+                  min="0"
+                  step="0.01"
+                />
               </div>
+
               <div className="flex gap-3 pt-4">
-                <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-3.5 rounded-full bg-gray-100 text-gray-900 font-medium hover:bg-gray-200 transition-colors">Cancel</button>
-                <button type="submit" className="flex-1 py-3.5 rounded-full bg-yellow-300 text-gray-900 font-medium hover:bg-yellow-400 transition-colors">Add Goal</button>
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="flex-1 py-3.5 rounded-full bg-gray-100 text-gray-900 font-medium hover:bg-gray-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-3.5 rounded-full bg-yellow-300 text-gray-900 font-medium hover:bg-yellow-400 transition-colors"
+                >
+                  Add Goal
+                </button>
               </div>
             </form>
           </div>

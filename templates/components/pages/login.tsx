@@ -9,9 +9,46 @@ export function Login() {
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Reset errors
+    setEmailError('');
+    setPasswordError('');
+
+    // Validate email is not empty
+    if (!email.trim()) {
+      setEmailError('Please enter your email address');
+      return;
+    }
+
+    // Validate email format
+    if (!validateEmail(email)) {
+      setEmailError('Please enter a valid email address');
+      return;
+    }
+
+    // Validate password is not empty
+    if (!password) {
+      setPasswordError('Please enter your password');
+      return;
+    }
+
+    // Validate password length (minimum 6 characters)
+    if (password.length < 6) {
+      setPasswordError('Password must be at least 6 characters long');
+      return;
+    }
+
+    // If all validations pass
     login();
     navigate('/tracker');
   };
@@ -31,7 +68,7 @@ export function Login() {
               </p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} noValidate className="space-y-4">
               <div>
                 <input
                   type="email"
@@ -39,8 +76,8 @@ export function Login() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Email"
                   className="w-full px-5 py-3.5 rounded-full border-2 border-gray-200 focus:outline-none focus:border-purple-300 bg-white"
-                  required
                 />
+                {emailError && <p className="text-red-500 text-sm mt-2 ml-5">{emailError}</p>}
               </div>
 
               <div>
@@ -50,8 +87,8 @@ export function Login() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Password"
                   className="w-full px-5 py-3.5 rounded-full border-2 border-gray-200 focus:outline-none focus:border-purple-300 bg-white"
-                  required
                 />
+                {passwordError && <p className="text-red-500 text-sm mt-2 ml-5">{passwordError}</p>}
               </div>
 
               <button

@@ -1,4 +1,4 @@
-import { Navigation } from '../../Navigation';
+import { Navigation } from '../Navigation';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { Link, useNavigate } from 'react-router';
 import { ArrowLeft } from 'lucide-react';
@@ -7,16 +7,21 @@ import { useEffect } from 'react';
 export function Statistics() {
   const navigate = useNavigate();
 
+  // Check if user came from currency page
   useEffect(() => {
     const fromCurrency = sessionStorage.getItem('fromCurrency');
     if (!fromCurrency) {
+      // Redirect back to currency if not coming from there
       navigate('/currency', { replace: true });
     }
+
+    // Clear the flag
     return () => {
       sessionStorage.removeItem('fromCurrency');
     };
   }, [navigate]);
 
+  // Historical data for USD and EUR
   const exchangeData = [
     { date: 'Feb 1', usd: 40.2, eur: 50.1 },
     { date: 'Feb 3', usd: 40.3, eur: 50.3 },
@@ -34,9 +39,9 @@ export function Statistics() {
   return (
     <div className="min-h-screen pb-16">
       <Navigation />
-      <div className="max-w-6xl mx-auto px-4 md:px-8 py-8 md:py-12">
-        <div className="space-y-8">
 
+      <div className="max-w-6xl mx-auto px-8 py-12">
+        <div className="space-y-8">
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
@@ -47,14 +52,14 @@ export function Statistics() {
                 >
                   <ArrowLeft className="w-5 h-5" />
                 </Link>
-                <h1 className="text-3xl md:text-5xl font-bold">Statistics</h1>
+                <h1 className="text-5xl font-bold">Statistics</h1>
               </div>
               <p className="text-gray-600">Currency exchange rate trends</p>
             </div>
           </div>
 
           {/* Currency Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             {currencies.map((currency) => (
               <div
                 key={currency.code}
@@ -80,13 +85,21 @@ export function Statistics() {
           </div>
 
           {/* Chart */}
-          <div className="bg-white rounded-2xl p-4 md:p-6 border border-gray-200">
+          <div className="bg-white rounded-2xl p-6 border border-gray-200">
             <h3 className="font-bold mb-6">Exchange Rate Trends (Last 10 Days)</h3>
-            <ResponsiveContainer width="100%" height={250}>
+            <ResponsiveContainer width="100%" height={300}>
               <LineChart data={exchangeData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="date" stroke="#999" style={{ fontSize: '12px' }} />
-                <YAxis stroke="#999" style={{ fontSize: '12px' }} domain={[38, 52]} />
+                <XAxis
+                  dataKey="date"
+                  stroke="#999"
+                  style={{ fontSize: '12px' }}
+                />
+                <YAxis
+                  stroke="#999"
+                  style={{ fontSize: '12px' }}
+                  domain={[38, 52]}
+                />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: 'white',
@@ -116,7 +129,7 @@ export function Statistics() {
           </div>
 
           {/* Analysis */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div className="grid grid-cols-2 gap-6">
             <div className="bg-purple-100 rounded-2xl p-6">
               <h3 className="font-bold mb-2 flex items-center gap-2">
                 <span className="text-2xl">🇺🇸</span> USD Analysis
@@ -127,6 +140,7 @@ export function Statistics() {
                 the local currency.
               </p>
             </div>
+
             <div className="bg-green-100 rounded-2xl p-6">
               <h3 className="font-bold mb-2 flex items-center gap-2">
                 <span className="text-2xl">🇪🇺</span> EUR Analysis
@@ -148,7 +162,6 @@ export function Statistics() {
               Back to Exchange Rates
             </Link>
           </div>
-
         </div>
       </div>
     </div>

@@ -43,6 +43,12 @@ export function Signup() {
       return;
     }
 
+    // Validate password length (minimum 6 characters)
+    if (password.length < 6) {
+      setPasswordError('Password must be at least 6 characters long');
+      return;
+    }
+
     // Validate confirm password is not empty
     if (!confirmPassword) {
       setPasswordError('Please confirm your password');

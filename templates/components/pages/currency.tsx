@@ -45,7 +45,9 @@ export function Currency() {
 
   const loadRates = useCallback(async () => {
     try {
-      const res = await fetch('/api/currency/rates');
+      const res = await fetch('/api/currency/rates', {
+        credentials: 'include',
+      });
       if (!res.ok) throw new Error('Failed to fetch');
       const data: RatesResponse = await res.json();
       parseRates(data);
@@ -62,23 +64,27 @@ export function Currency() {
     return () => clearInterval(interval);
   }, [loadRates]);
 
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    try {
-      const res = await fetch('/api/currency/update');
-      if (!res.ok) throw new Error('Failed to update');
-      const data: RatesResponse = await res.json();
-      parseRates(data);
-      toast.success('Exchange rates updated!', {
-        description: lastUpdate ? `Updated at ${data.last_update}` : 'Latest data received',
-        duration: 3000,
-      });
-    } catch {
-      toast.error('Failed to update rates');
-    } finally {
-      setRefreshing(false);
-    }
-  };
+const handleRefresh = async () => {
+  setRefreshing(true);
+  try {
+    const res = await fetch('/api/currency/update', {
+      method: 'GET',
+    });
+    if (!res.ok) throw new Error('Failed to update');
+    const data: RatesResponse = await res.json();
+    parseRates(data);
+    toast.success('Exchange rates updated!', {
+      description: data.last_update
+        ? `Updated at ${data.last_update}`
+        : 'Latest data received',
+      duration: 3000,
+    });
+  } catch (error) {
+    toast.error('Failed to update rates');
+  } finally {
+    setRefreshing(false);
+  }
+};
 
   return (
     <div className="min-h-screen pb-16">

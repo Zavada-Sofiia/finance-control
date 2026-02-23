@@ -287,17 +287,18 @@ def logout():
     response = RedirectResponse(url="/")
     response.delete_cookie("access_token")
     return response
+
 @app.get("/api/currency/rates")
 async def get_currency_rates():
-    rates = currency_service.current_rates or await currency_service.fetch_rates()
     return {
-        "rates": rates,
-        "last_update": currency_service.last_update.strftime("%H:%M:%S") if currency_service.last_update else None
+        "rates": currency_service.current_rates,
+        "last_update": currency_service.last_update.strftime("%H:%M:%S")
+        if currency_service.last_update else None
     }
 
 @app.get("/api/currency/update")
 async def update_currency_rates():
-    rates = await currency_service.fetch_rates()
+    rates = await currency_service.fetch_rates(force_update=True)
     return {
         "rates": rates,
         "last_update": currency_service.last_update.strftime("%H:%M:%S")

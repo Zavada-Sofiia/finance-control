@@ -11,7 +11,7 @@ import { ProtectedRoute } from "./ProtectedRoute";
 export const router = createBrowserRouter([
   {
     path: "/",
-    Component: Landing,
+    element: <Landing />,
   },
   {
     path: "/tracker",
@@ -31,21 +31,20 @@ export const router = createBrowserRouter([
   },
   {
     path: "/currency",
-    Component: Currency,
+    element: <Currency />,
   },
   {
     path: "/statistics",
-    Component: Statistics,
+    element: <Statistics />,
   },
   {
     path: "/login",
-    Component: Login,
+    element: <Login />,
   },
   {
     path: "/signup",
-    Component: Signup,
+    element: <Signup />,
   },
 ],
   { basename: "/app" }
-
 );

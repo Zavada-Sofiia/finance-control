@@ -74,7 +74,14 @@ class CurrencyService:
         self.last_update = datetime.now()
         return result
 
-    async def fetch_rates(self) -> dict:
+    async def fetch_rates(self, force_update: bool = False) -> dict:
+        """
+        Якщо force_update=True — обов'язково робимо запит до API,
+        ігноруючи попередні current_rates.
+        """
+        if not force_update and self.current_rates:
+            return self.current_rates
+
         urls = [
             "https://api.exchangerate-api.com/v4/latest/UAH",
             "https://open.er-api.com/v6/latest/UAH",
@@ -90,6 +97,7 @@ class CurrencyService:
                             return self._format(raw)
                 except Exception as e:
                     print(f"[CurrencyService] Error fetching {url}: {e}")
+
         # fallback
         self.current_rates = DEFAULT_RATES
         self.last_update = datetime.now()

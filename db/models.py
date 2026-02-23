@@ -1,7 +1,9 @@
 from datetime import datetime, timezone
-from typing import Optional, List
-from sqlmodel import Field, Relationship, SQLModel
+from typing import Optional, List,Dict, Any
 from pydantic import EmailStr
+from __future__ import annotations
+from fastapi import FastAPI, Depends, HTTPException
+from sqlmodel import SQLModel, Field, Relationship, Session, create_engine, select
 
 # --- Головна таблиця USER ---
 class User(SQLModel, table=True):

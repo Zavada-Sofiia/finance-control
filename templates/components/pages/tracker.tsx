@@ -1,7 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Navigation } from '../../Navigation';
 import { Plus, X, Calendar } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import axios from 'axios';
 
 interface Transaction {
   id: string;
@@ -9,6 +10,7 @@ interface Transaction {
   amount: number;
   color: string;
   date: string;
+  type: 'expenses' | 'income';
 }
 
 export function Tracker() {
@@ -16,29 +18,35 @@ export function Tracker() {
   const [timePeriod, setTimePeriod] = useState<'day' | 'week' | 'month' | 'year'>('month');
   const [showModal, setShowModal] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showChart, setShowChart] = useState(false); // мобільний перемикач
+  const [showChart, setShowChart] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [newItemName, setNewItemName] = useState('');
   const [newItemAmount, setNewItemAmount] = useState('');
   const [newItemDate, setNewItemDate] = useState(new Date().toISOString().split('T')[0]);
 
-  const [expenses, setExpenses] = useState<Transaction[]>([
-    { id: '1', name: 'Підписки', amount: 8200, color: '#c084fc', date: '2026-02-10' },
-    { id: '2', name: 'Їжа', amount: 8200, color: '#d8b4fe', date: '2026-02-09' },
-    { id: '3', name: 'Інше', amount: 16283, color: '#fde047', date: '2026-02-05' },
-  ]);
-
-  const [income, setIncome] = useState<Transaction[]>([
-    { id: '1', name: 'Зарплата', amount: 45000, color: '#86efac', date: '2026-02-01' },
-    { id: '2', name: 'Фріланс', amount: 12000, color: '#6ee7b7', date: '2026-02-08' },
-    { id: '3', name: 'Інше', amount: 3000, color: '#fde047', date: '2026-02-10' },
-  ]);
-
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const colors = ['#c084fc', '#d8b4fe', '#fde047', '#86efac', '#6ee7b7', '#fbbf24', '#fb923c'];
 
+  // ЗАВАНТАЖЕННЯ З БЕКЕНДУ
+useEffect(() => {
+  async function fetchTransactions() {
+    try {
+      const token = localStorage.getItem("access_token"); // просто рядок
+      const res = await axios.get<Transaction[]>('/transactions/', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setTransactions(res.data);
+    } catch (err) {
+      console.error('Error fetching transactions', err);
+    }
+  }
+  fetchTransactions();
+}, []);
+
   const filteredData = useMemo(() => {
-    const currentData = activeTab === 'expenses' ? expenses : income;
+    const currentData = transactions.filter(item => item.type === activeTab);
     const referenceDate = selectedDate;
+
     return currentData.filter(item => {
       const itemDate = new Date(item.date);
       switch (timePeriod) {
@@ -52,41 +60,58 @@ export function Tracker() {
           return itemDate >= weekStart && itemDate <= weekEnd;
         case 'month':
           return itemDate.getMonth() === referenceDate.getMonth() &&
-            itemDate.getFullYear() === referenceDate.getFullYear();
+                 itemDate.getFullYear() === referenceDate.getFullYear();
         case 'year':
           return itemDate.getFullYear() === referenceDate.getFullYear();
         default:
           return true;
       }
     });
-  }, [activeTab, expenses, income, timePeriod, selectedDate]);
+  }, [transactions, activeTab, timePeriod, selectedDate]);
 
-  const handleAddItem = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newItemName || !newItemAmount || !newItemDate) return;
-    const newItem: Transaction = {
-      id: Date.now().toString(),
-      name: newItemName,
-      amount: parseFloat(newItemAmount),
-      color: colors[Math.floor(Math.random() * colors.length)],
-      date: newItemDate,
-    };
-    if (activeTab === 'expenses') {
-      setExpenses([...expenses, newItem]);
-    } else {
-      setIncome([...income, newItem]);
-    }
+const handleAddItem = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!newItemName || !newItemAmount || !newItemDate) return;
+
+  const newItem: Transaction = {
+    id: Date.now().toString(),
+    name: newItemName,
+    amount: parseFloat(newItemAmount),
+    type: activeTab,
+    color: colors[Math.floor(Math.random() * colors.length)],
+    date: newItemDate,
+  };
+
+  try {
+    const token = localStorage.getItem("access_token");
+
+    // Виконуємо POST, а не GET
+    const res = await axios.post<Transaction>('/transactions/', newItem, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    setTransactions(prev => [...prev, res.data]);
+
+    // Скидаємо форми
     setNewItemName('');
     setNewItemAmount('');
     setNewItemDate(new Date().toISOString().split('T')[0]);
     setShowModal(false);
-  };
+  } catch (err) {
+    console.error('Error adding transaction', err);
+  }
+};
 
-  const handleDelete = (id: string) => {
-    if (activeTab === 'expenses') {
-      setExpenses(expenses.filter(item => item.id !== id));
-    } else {
-      setIncome(income.filter(item => item.id !== id));
+  const handleDelete = async (id: string) => {
+    try {
+      const token = localStorage.getItem("access_token");
+      await axios.delete(`/transactions/${id}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+      setTransactions(prev => prev.filter(item => item.id !== id));
+    } catch (err) {
+      console.error('Error deleting transaction', err);
     }
   };
 

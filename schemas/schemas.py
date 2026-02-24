@@ -1,6 +1,16 @@
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
 from datetime import datetime
+import uuid
+from typing import Literal
+
+
+class TransactionBase(BaseModel):
+    name: str
+    amount: float
+    type: Literal["income", "expenses"]
+    color: str
+    date: str
 
 # --- Token ---
 class Token(BaseModel):
@@ -19,14 +29,11 @@ class UserRead(BaseModel):
     email: Optional[str]
 
 # --- Transaction Schemas ---
-class TransactionCreate(BaseModel):
-    amount: float
-    category: str
-    description: Optional[str] = None
+class TransactionCreate(TransactionBase):
+    pass
 
 class TransactionRead(TransactionCreate):
-    id: int
-    timestamp: datetime
+    id: str
 
 class WishlistCreate(BaseModel):
     name: str

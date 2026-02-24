@@ -102,27 +102,23 @@ async def get_current_user(
     The token can be passed via Authorization header
     or stored in cookies.
     """
+    print("Authorization header:", request.headers.get("authorization"))
+    print("Cookie access_token:", request.cookies.get("access_token"))
     if not token:
-        token = request.cookies.get("access_token")
+        raise HTTPException(status_code=401, detail="No token provided")
 
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    if not token:
-        raise credentials_exception
+    if token.startswith("Bearer "):
+        token = token.split(" ")[1]
+
+    print("Token before decode:", token)
 
     try:
-        if token.startswith("Bearer "):
-            token = token.split(" ")[1]
-
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
-        if username is None:
-            raise credentials_exception
-    except InvalidTokenError:
-        raise credentials_exception
+        print("Payload:", payload)
+    except InvalidTokenError as e:
+        print("Invalid token error:", e)
+        raise HTTPException(status_code=401, detail="Invalid token")
 
     user = session.exec(select(User).where(User.username == username)).first()
     if not user:
@@ -203,11 +199,12 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], sess
     return {"access_token": token, "token_type": "bearer"}
 
 # ТРЕКЕР
-@app.post("/transactions/", response_model=TransactionRead)
-def create_transaction(
-    data: TransactionCreate,
+@app.get("/transactions/", response_model=List[TransactionRead])
+def get_transactions(
     session: SessionDep,
-    user: Annotated[User, Depends(get_current_user)]
+    user: Annotated[User, Depends(get_current_user)],
+    offset: int = 0,
+    limit: int = Query(default=100, le=200),
 ):
     """
     Створює нову фінансову транзакцію
@@ -216,35 +213,50 @@ def create_transaction(
     Creates a new financial transaction
     for the authenticated user.
     """
-    db_tx = Transaction(**data.model_dump(), user_id=user.id)
-    session.add(db_tx)
-    session.commit()
-    session.refresh(db_tx)
-    return db_tx
+    query = select(Transaction).where(Transaction.user_id == user.id)
+    return session.exec(query.offset(offset).limit(limit)).all()
 
-@app.get("/transactions/", response_model=List[TransactionRead])
-def get_transactions(
+@app.post("/transactions/", response_model=TransactionRead)
+def create_transaction(
+    data: TransactionCreate,
     session: SessionDep,
     user: Annotated[User, Depends(get_current_user)],
-    offset: int = 0,
-    limit: int = Query(default=10, le=100),
-    category: Optional[str] = None
 ):
-    """
-    Повертає список транзакцій користувача
-    з можливістю пагінації та фільтрації за категорією.
+    transaction = Transaction(
+        **data.model_dump(),
+        user_id=user.id,
+    )
+    print(transaction)
+    session.add(transaction)
+    session.commit()
+    session.refresh(transaction)
+    return transaction
 
-    Returns a list of user transactions
-    with optional pagination and category filtering.
-    """
-    query = select(Transaction).where(Transaction.user_id == user.id)
-    if category:
-        query = query.where(Transaction.category == category)
-    return session.exec(query.offset(offset).limit(limit)).all()
+@app.get("/transactions/expenses", response_model=List[TransactionRead])
+def get_expenses(
+    session: SessionDep,
+    user: Annotated[User, Depends(get_current_user)],
+):
+    statement = select(Transaction).where(
+        Transaction.user_id == user.id,
+        Transaction.type == "expenses"
+    )
+    return session.exec(statement).all()
+
+@app.get("/transactions/income", response_model=List[TransactionRead])
+def get_income(
+    session: SessionDep,
+    user: Annotated[User, Depends(get_current_user)],
+):
+    statement = select(Transaction).where(
+        Transaction.user_id == user.id,
+        Transaction.type == "income"
+    )
+    return session.exec(statement).all()
 
 @app.delete("/transactions/{tx_id}")
 def delete_transaction(
-    tx_id: int,
+    tx_id: str,
     session: SessionDep,
     user: Annotated[User, Depends(get_current_user)]
 ):
@@ -304,3 +316,66 @@ async def update_currency_rates():
         "rates": rates,
         "last_update": currency_service.last_update.strftime("%H:%M:%S")
     }
+
+
+# ---------- WISHLIST (Мрії) ----------
+from fastapi import APIRouter
+
+wishlist_router = APIRouter()
+
+# --- Отримати всі мрії користувача ---
+@wishlist_router.get("/wishlist/", response_model=List[WishlistRead])
+def get_wishlist(
+    session: SessionDep,
+    user: Annotated[User, Depends(get_current_user)]
+):
+    items = session.exec(
+        select(WishlistItem).where(WishlistItem.owner_id == user.id)
+    ).all()
+    return items
+
+# --- Додати нову мрію ---
+@wishlist_router.post("/wishlist/", response_model=WishlistRead)
+def create_wishlist_item(
+    data: WishlistCreate,
+    session: SessionDep,
+    user: Annotated[User, Depends(get_current_user)]
+):
+    item = WishlistItem(**data.model_dump(), owner_id=user.id)
+    session.add(item)
+    session.commit()
+    session.refresh(item)
+    return item
+
+# --- Змінити статус покупки (is_bought) ---
+@wishlist_router.patch("/wishlist/{item_id}", response_model=WishlistRead)
+def toggle_wishlist_item(
+    item_id: int,
+    session: SessionDep,
+    user: Annotated[User, Depends(get_current_user)]
+):
+    item = session.get(WishlistItem, item_id)
+    if not item or item.owner_id != user.id:
+        raise HTTPException(status_code=404, detail="Item not found")
+    item.is_bought = not item.is_bought
+    session.add(item)
+    session.commit()
+    session.refresh(item)
+    return item
+
+# --- Видалити мрію ---
+@wishlist_router.delete("/wishlist/{item_id}")
+def delete_wishlist_item(
+    item_id: int,
+    session: SessionDep,
+    user: Annotated[User, Depends(get_current_user)]
+):
+    item = session.get(WishlistItem, item_id)
+    if not item or item.owner_id != user.id:
+        raise HTTPException(status_code=404, detail="Item not found")
+    session.delete(item)
+    session.commit()
+    return {"ok": True}
+
+# --- Підключаємо роутер до основного додатку ---
+app.include_router(wishlist_router)

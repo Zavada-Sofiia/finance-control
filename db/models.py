@@ -20,20 +20,23 @@ class User(SQLModel, table=True):
     wishlist_items: List["WishlistItem"] = Relationship(back_populates="owner")
 
 
-# --- Таблиця TRANSACTION ---
+import uuid
+from typing import Optional
+from sqlmodel import SQLModel, Field, Relationship
+
+
 class Transaction(SQLModel, table=True):
     __tablename__ = "transactions"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    name: str
     amount: float
-    category: str
-    description: Optional[str] = None
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    type: str  # "income" | "expenses"
+    color: str
+    date: str
 
-    # Зовнішній ключ
-    user_id: int = Field(foreign_key="users.id")
-    # Зворотній зв'язок
-    user: Optional[User] = Relationship(back_populates="transactions")
+    user_id: Optional[int] = Field(default=None, foreign_key="users.id")
+    user: Optional["User"] = Relationship(back_populates="transactions")
 
 
 # --- Таблиця GOAL ---

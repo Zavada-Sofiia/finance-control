@@ -195,6 +195,7 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], sess
     and returns a JWT token.
     """
     user = session.exec(select(User).where(User.username == form_data.username)).first()
+    print(user)
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(status_code=400, detail="Incorrect username or password")
 

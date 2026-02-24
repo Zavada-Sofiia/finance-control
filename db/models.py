@@ -37,19 +37,19 @@ class Transaction(SQLModel, table=True):
 
 
 # --- Таблиця GOAL ---
-# class Goal(SQLModel, table=True):
-#     __tablename__ = "goals"
+class Goal(SQLModel, table=True):
+    __tablename__ = "goals"
 
-#     id: Optional[int] = Field(default=None, primary_key=True)
-#     title: str
-#     target_amount: float
-#     monthly_contribution: float
-#     current_savings: float = Field(default=0.0)
+    id: Optional[int] = Field(default=None, primary_key=True)
+    title: str
+    target_amount: float
+    monthly_contribution: float
+    current_savings: float = Field(default=0.0)
 
-#     # Зовнішній ключ
-#     owner_id: int = Field(foreign_key="users.id")
-#     # Зворотній зв'язок
-#     owner: Optional[User] = Relationship(back_populates="goals")
+    # Зовнішній ключ
+    owner_id: int = Field(foreign_key="users.id")
+    # Зворотній зв'язок
+    owner: Optional[User] = Relationship(back_populates="goals")
 
 
 # --- Таблиця WISHLIST ---

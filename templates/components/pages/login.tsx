@@ -18,13 +18,7 @@ export function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const formData = new URLSearchParams();
-      formData.append('username', username);
-      formData.append('password', password);
-      const res = await axios.post('/token', formData, {
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-      });
-      login(res.data.access_token);
+      await login(username, password);
       navigate('/tracker');
     } catch (err: any) {
       alert(err.response?.data?.detail || 'Error logging in');

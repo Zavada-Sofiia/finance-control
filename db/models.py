@@ -19,6 +19,9 @@ class User(SQLModel, table=True):
     goals: List["Goal"] = Relationship(back_populates="owner")
     wishlist_items: List["WishlistItem"] = Relationship(back_populates="owner")
 
+from pydantic import BaseModel
+
+
 
 import uuid
 from typing import Optional

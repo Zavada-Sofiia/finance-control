@@ -15,9 +15,18 @@ export function Signup() {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState(''); // додано
+  const [error, setError] = useState<string | null>(null); // для повідомлень
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match!");
+      return;
+    }
+
     try {
       const formData = { username, email, password };
       const res = await axios.post("/register", formData, {
@@ -26,7 +35,7 @@ export function Signup() {
       login(res.data.access_token);
       navigate("/tracker");
     } catch (err: any) {
-      alert(err.response?.data?.detail || "Error registering");
+      setError(err.response?.data?.detail || "Error registering");
     }
   };
 
@@ -75,6 +84,19 @@ export function Signup() {
                   required
                 />
               </div>
+              <div>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm Password"
+                  className="w-full px-5 py-3.5 rounded-full border-2 border-gray-200 focus:outline-none focus:border-purple-300 bg-white"
+                  required
+                />
+              </div>
+
+              {error && <div className="text-red-500 text-sm">{error}</div>}
+
               <button
                 type="submit"
                 className="w-full py-3.5 rounded-full bg-purple-300 text-gray-900 font-medium hover:bg-purple-400 transition-colors"

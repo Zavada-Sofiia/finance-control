@@ -61,3 +61,12 @@ class WishlistRead(WishlistCreate):
     #monthly_contribution: float
     #current_savings: float = 0
     #extra_expense: Optional[float] = 0
+
+
+class ForgotPasswordRequest(BaseModel):
+    username: str
+
+class ResetPasswordRequest(BaseModel):
+    username: str
+    code: str
+    new_password: str

@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Annotated, List, Optional
 
-import jwt
+import jwt, os
 from fastapi import FastAPI, HTTPException, status, Depends, Query, Request
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.responses import RedirectResponse, JSONResponse, FileResponse
@@ -21,8 +21,12 @@ from db.models import User, Transaction
 from db.models import WishlistItem
 from schemas.schemas import WishlistCreate, WishlistRead
 from schemas.schemas import UserCreate, UserRead, Token, TransactionCreate, TransactionRead
+from schemas.schemas import ForgotPasswordRequest, ResetPasswordRequest
 
 from contextlib import asynccontextmanager
+import random
+import smtplib
+from email.message import EmailMessage
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -45,6 +49,15 @@ async def lifespan(app: FastAPI):
 SECRET_KEY = (Path(__file__).resolve().parent / "core" / "secret_key").read_text().strip()
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
+SMTP_SERVER = os.getenv("SMTP_SERVER")
+SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
+SMTP_EMAIL = os.getenv("SMTP_EMAIL")
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
 
 password_hash = PasswordHash.recommended()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token", auto_error=False)
@@ -379,3 +392,99 @@ def delete_wishlist_item(
 
 # --- Підключаємо роутер до основного додатку ---
 app.include_router(wishlist_router)
+
+
+def send_email(to_email: str, subject: str, body: str):
+    """
+    Надсилає електронний лист через SMTP.
+
+    Args:
+        to_email (str): Кому надсилати.
+        subject (str): Тема листа.
+        body (str): Тіло листа.
+    """
+    try:
+        msg = EmailMessage()
+        msg["From"] = SMTP_EMAIL
+        msg["To"] = to_email
+        msg["Subject"] = subject
+        msg.set_content(body)
+
+        # Підключення до SMTP
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.starttls()  # TLS шифрування
+            server.login(SMTP_EMAIL, SMTP_PASSWORD)
+            server.send_message(msg)
+
+        print(f"Email sent to {to_email}")
+
+    except Exception as e:
+        print("Error sending email:", e)
+        raise
+
+reset_storage = {}
+
+@app.post("/forgot-password")
+def forgot_password(data: ForgotPasswordRequest, session: SessionDep):
+
+    clean_expired_reset_codes()
+
+    user = session.exec(
+        select(User).where(User.username == data.username)
+    ).first()
+
+    if not user or not user.email:
+        return {"detail": "If account exists, reset code sent"}
+
+    code = str(random.randint(100000, 999999))
+
+    reset_storage[data.username] = {
+        "code": code,
+        "expire": datetime.now(timezone.utc) + timedelta(minutes=1)
+    }
+
+    body = f"Your password reset code is: {code}\nIt expires in 1 minute."
+
+    send_email(user.email, "Reset password", body)
+
+    return {"detail": "Reset code sent"}
+
+@app.post("/reset-password")
+def reset_password(data: ResetPasswordRequest, session: SessionDep):
+
+    clean_expired_reset_codes()
+
+    stored = reset_storage.get(data.username)
+
+    if not stored:
+        raise HTTPException(status_code=400, detail="No reset request")
+
+    if stored["code"] != data.code:
+        raise HTTPException(status_code=400, detail="Invalid code")
+
+    user = session.exec(
+        select(User).where(User.username == data.username)
+    ).first()
+
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid user")
+
+    user.hashed_password = get_password_hash(data.new_password)
+    session.add(user)
+    session.commit()
+
+    del reset_storage[data.username]
+
+    return {"detail": "Password updated"}
+
+def clean_expired_reset_codes():
+    now = datetime.now(timezone.utc)
+
+    expired_users = [
+        username
+        for username, data in reset_storage.items()
+        if data["expire"] < now
+    ]
+
+    for username in expired_users:
+        del reset_storage[username]

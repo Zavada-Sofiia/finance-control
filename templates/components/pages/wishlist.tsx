@@ -13,15 +13,26 @@ interface WishlistItem {
   is_bought: boolean;
 }
 
+interface Transaction {
+  id: string;
+  amount: number;
+  type: 'income' | 'expenses';
+  date: string;
+}
+
+// ... решта імпортів та інтерфейсів як раніше
+
 export function Wishlist() {
   const [items, setItems] = useState<WishlistItem[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [newItemName, setNewItemName] = useState('');
   const [newItemAmount, setNewItemAmount] = useState('');
+  const [forecastMonths, setForecastMonths] = useState<number | null>(null);
 
-  const token = localStorage.getItem('access_token'); // JWT
+  const token = localStorage.getItem('access_token');
 
-  // --- Fetch wishlist from backend
+  // --- Fetch wishlist
   const fetchWishlist = async () => {
     const res = await axios.get('/wishlist/', {
       headers: { Authorization: `Bearer ${token}` }
@@ -29,11 +40,53 @@ export function Wishlist() {
     setItems(res.data);
   };
 
+  // --- Fetch transactions
+  const fetchTransactions = async () => {
+    const res = await axios.get('/transactions/', {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    setTransactions(res.data);
+  };
+
   useEffect(() => {
     fetchWishlist();
+    fetchTransactions();
   }, []);
 
-  // --- Toggle item (is_bought)
+  // --- Прогноз на основі items + transactions
+  const calculateForecast = () => {
+    if (!transactions.length || !items.length) {
+      setForecastMonths(null);
+      return;
+    }
+
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
+    const recentTx = transactions.filter(tx => new Date(tx.date) >= threeMonthsAgo);
+
+    const totalIncome = recentTx.filter(tx => tx.type === 'income')
+      .reduce((sum, tx) => sum + tx.amount, 0);
+    const totalExpenses = recentTx.filter(tx => tx.type === 'expenses')
+      .reduce((sum, tx) => sum + tx.amount, 0);
+    const avgMonthlyBalance = (totalIncome - totalExpenses) / 3;
+
+    const remainingWishlist = items.filter(i => !i.is_bought)
+      .reduce((sum, i) => sum + i.price, 0);
+
+    if (avgMonthlyBalance > 0) {
+      setForecastMonths(Math.ceil(remainingWishlist / avgMonthlyBalance));
+    } else {
+      setForecastMonths(null);
+    }
+  };
+
+  // --- Авто-оновлення прогнозу
+  useEffect(() => {
+    calculateForecast();
+  }, [items, transactions]);
+
+  // --- Toggle item
   const toggleItem = async (id: number) => {
     const res = await axios.patch(`/wishlist/${id}`, {}, {
       headers: { Authorization: `Bearer ${token}` }
@@ -65,6 +118,7 @@ export function Wishlist() {
     setItems(items.filter(i => i.id !== id));
   };
 
+  // --- Рендер
   const totalAmount = items.reduce((sum, i) => sum + i.price, 0);
   const completedAmount = items.filter(i => i.is_bought).reduce((sum, i) => sum + i.price, 0);
   const progress = totalAmount > 0 ? (completedAmount / totalAmount) * 100 : 0;
@@ -84,6 +138,12 @@ export function Wishlist() {
               <div className="bg-gradient-to-r from-purple-400 to-pink-400 h-full" style={{ width: `${progress}%` }}></div>
             </div>
           </div>
+
+          {forecastMonths !== null && (
+            <div className="mb-4 text-gray-700">
+              Based on your last 3 months' income/expenses, you can afford all your goals in <strong>{forecastMonths} month(s)</strong>.
+            </div>
+          )}
 
           <button onClick={() => setShowModal(true)}>Add Goal</button>
 

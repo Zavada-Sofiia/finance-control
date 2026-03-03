@@ -22,35 +22,35 @@ Framework: FastAPI<br>
 Database (ORM): <br>
 
 ### 📁 Project Structure
-
-./<br>
-├── README.md<br>
-├── core<br>
-│   └── secret_key  # holds secret key<br>
-├── db              # holds db logic<br>
-│   ├── __init__.py<br>
-│   ├── database.py<br>
-│   └── models.py<br>
-├── finance_database.db # database<br>
-├── main.py             # server<br>
-├── requirements.txt    # pip requirements<br>
-├── schemas             # pydantic schemas<br>
-│   └── schemas.py<br>
-├── services            # services of the project<br>
-│   ├── calculator.py<br>
-│   └── currency_service.py<br>
-└── templates           # frontend<br>
-    │   ...<br>
-    └── dist            # frontend that loads<br>
-        ├── assets<br>
-        │   ├── currency_back_img-CyxF1tBA.png<br>
-        │   ├── home_back_img-CUMFBhVz.png<br>
-        │   ├── index-BWdXUAo6.css<br>
-        │   ├── index-BZjiwzpO.js<br>
-        │   ├── login_back_img-BJTVgwyR.png<br>
-        │   └── wish_list_back_img-C9Et085K.png<br>
-        └── index.html<br>
-
+```
+./
+├── README.md
+├── core
+│   └── secret_key  # holds secret key
+├── db              # holds db logic
+│   ├── __init__.py
+│   ├── database.py
+│   └── models.py
+├── finance_database.db # database
+├── main.py             # server
+├── requirements.txt    # pip requirements
+├── schemas             # pydantic schemas
+│   └── schemas.py
+├── services            # services of the project
+│   ├── calculator.py
+│   └── currency_service.py
+└── templates           # frontend
+    │   ...
+    └── dist            # frontend that loads
+        ├── assets
+        │   ├── currency_back_img-CyxF1tBA.png
+        │   ├── home_back_img-CUMFBhVz.png
+        │   ├── index-BWdXUAo6.css
+        │   ├── index-BZjiwzpO.js
+        │   ├── login_back_img-BJTVgwyR.png
+        │   └── wish_list_back_img-C9Et085K.png
+        └── index.html
+```
 ## Authentication & User Security Layer
 This module ensures secure user access and data protection.
 

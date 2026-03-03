@@ -17,6 +17,8 @@ interface DayRate {
   EUR: number;
 }
 
+
+
 export function Statistics() {
   const navigate = useNavigate();
 
@@ -35,6 +37,22 @@ export function Statistics() {
       sessionStorage.removeItem('fromCurrency');
     };
   }, [navigate]);
+
+  const getTrendAnalysis = (code: 'USD' | 'EUR') => {
+    if (history.length < 2) return null;
+
+    const first = history[0][code];
+    const last = history[history.length - 1][code];
+
+    const diff = last - first;
+    const percent = ((diff / first) * 100).toFixed(2);
+
+    let trend: 'up' | 'down' | 'stable' = 'stable';
+    if (diff > 0) trend = 'up';
+    if (diff < 0) trend = 'down';
+
+    return { diff, percent, trend };
+  };
 
   // Генеруємо останні 10 днів
   const generateLast10Days = (usd: number, eur: number) => {
@@ -176,23 +194,45 @@ export function Statistics() {
 
           {/* Analysis */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {currencies.map((currency) => (
-              <div
-                key={currency.code}
-                className={currency.code === 'USD' ? 'bg-purple-100 rounded-2xl p-6' : 'bg-green-100 rounded-2xl p-6'}
-              >
-                <h3 className="font-bold mb-2 flex items-center gap-2">
-                  <span className="text-2xl">{currency.flag}</span> {currency.code} Analysis
-                </h3>
-                <p className="text-sm text-gray-700 leading-relaxed">
-                  {currency.code === 'USD'
-                    ? `The US Dollar has shown a ${currency.change} trend over the past week.`
-                    : `The Euro has shown a ${currency.change} trend over the past week.`}
-                </p>
-              </div>
-            ))}
-          </div>
+            {currencies.map((currency) => {
+              const analysis = getTrendAnalysis(currency.code as 'USD' | 'EUR');
 
+              if (!analysis) return null;
+
+              const { trend, percent } = analysis;
+
+              const trendColor =
+                trend === 'up'
+                  ? 'bg-green-50 border-green-200'
+                  : trend === 'down'
+                  ? 'bg-red-50 border-red-200'
+                  : 'bg-gray-50 border-gray-200';
+
+              const trendText =
+                trend === 'up'
+                  ? `increased by ${percent}%`
+                  : trend === 'down'
+                  ? `decreased by ${Math.abs(Number(percent))}%`
+                  : 'remained stable';
+
+              return (
+                <div
+                  key={currency.code}
+                  className={`rounded-2xl p-6 border ${trendColor}`}
+                >
+                  <h3 className="font-bold mb-3 flex items-center gap-2">
+                    <span className="text-2xl">{currency.flag}</span>
+                    {currency.code} Analysis
+                  </h3>
+
+                  <p className="text-sm text-gray-700 leading-relaxed">
+                    Over the last 10 days, {currency.code} has {trendText}.
+                    The current rate is ₴ {currency.current.toFixed(2)}.
+                  </p>
+                </div>
+              );
+            })}
+          </div>
           {/* Back to Currency */}
           <div className="text-center">
             <Link

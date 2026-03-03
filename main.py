@@ -50,9 +50,9 @@ SECRET_KEY = (Path(__file__).resolve().parent / "core" / "secret_key").read_text
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 
-load_dotenv()
+# load_dotenv()
 
 SMTP_SERVER = os.getenv("SMTP_SERVER")
 SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
@@ -67,7 +67,7 @@ app = FastAPI(title="Finance Tracker API", lifespan=lifespan)
 
 # ---------- STATIC FILES ----------
 # Папка dist — збірка React/Vite
-app.mount("/app", StaticFiles(directory="templates/dist", html=True), name="frontend")
+app.mount("/app", StaticFiles(directory="./templates/dist", html=True), name="frontend")
 
 # ---------- AUTH HELPERS ----------
 def get_password_hash(password: str):
@@ -488,3 +488,11 @@ def clean_expired_reset_codes():
 
     for username in expired_users:
         del reset_storage[username]
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon():
+    """
+    Повертає favicon для браузера.
+    """
+    return FileResponse(Path("./templates/assets/favicon.ico"))

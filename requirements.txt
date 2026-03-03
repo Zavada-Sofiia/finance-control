@@ -12,4 +12,4 @@ email-validator==2.3.0
 passlib[bcrypt]
 bcrypt
 python-multipart
-pwdlib
+pwdlib[argon2]

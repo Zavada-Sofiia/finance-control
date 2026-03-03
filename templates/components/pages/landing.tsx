@@ -95,7 +95,7 @@ export function Landing() {
               <div className="text-gray-700 text-sm md:text-base">Active Users</div>
             </div>
             <div>
-              <div className="text-3xl md:text-5xl font-bold text-gray-900 mb-2">₴500M+</div>
+              <div className="text-3xl md:text-5xl font-bold text-gray-900 mb-2">₴500M</div>
               <div className="text-gray-700 text-sm md:text-base">Money Managed</div>
             </div>
             <div>

@@ -18,8 +18,10 @@ View the total current balance and the total count of transactions.
 
 ## 🛠 Tech Stack
 Language: Python 3.13, TypeScript, CSS <br>
-Framework: FastAPI<br>
-Database (ORM): <br>
+Framework: FastAPI, React + Vite <br>
+Database (ORM): SQLite + SQLModel <br>
+Authentication: OAuth2, JWT (PyJWT), pwdlib <br>
+Email: smtplib (SMTP / TLS) <br>
 
 ### 📁 Project Structure
 ```
@@ -104,7 +106,10 @@ Short-term (10 day) exchange rate statistics. <br>
 
 ## Team
 **[Zavada Sofiia](https://github.com/Zavada-Sofiia)**<br>
-↳ <br>
+↳ Backend development<br>
+↳ Login/registration logic<br>
+↳ Connected database to frontend<br>
+↳ Auth & security<br>
 ↳ README <br>
 
 **[Zuzuk Polina](https://github.com/pollinariaws)**<br>

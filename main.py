@@ -177,6 +177,9 @@ def register_and_login(
     if existing:
         raise HTTPException(status_code=400, detail="Username already taken")
 
+    if len(user_in.password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be atleast 8 characters")
+
     db_user = User(
         username=user_in.username,
         email=user_in.email,

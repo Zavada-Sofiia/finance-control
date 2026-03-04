@@ -27,6 +27,11 @@ export function Signup() {
       return;
     }
 
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters");
+      return;
+    }
+
     try {
       const formData = { username, email, password };
       const res = await axios.post("/register", formData, {

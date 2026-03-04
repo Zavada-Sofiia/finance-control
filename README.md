@@ -100,9 +100,9 @@ This module provides real-time currency information and simple exchange rate ana
 🇵🇱 Current PLN exchange rate <br>
 🇨🇿 Current CZK exchange rate <br>
 🇯🇵 Current JPY exchange rate <br>
-Automatically updated currency data from https://api.exchangerate-api.com/v4/latest/UAH <br>
-and alternative https://open.er-api.com/v6/latest/UAH <br>
-Short-term (10 day) exchange rate statistics. <br>
+Currency data sourced from the National Bank of Ukraine (bank.gov.ua),<br>
+with fallback to exchangerate-api.com and open.er-api.com.<br>
+Short-term (10-day) exchange rate history. <br>
 
 ## Team
 **[Zavada Sofiia](https://github.com/Zavada-Sofiia)**<br>

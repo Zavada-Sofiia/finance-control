@@ -1,13 +1,23 @@
 """
 Finance Control App — FastAPI + React
 """
-from services.currency_service import currency_service
+import smtplib
+from contextlib import asynccontextmanager
+import random
+from email.message import EmailMessage
+
 
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Annotated, List, Optional
 
-import jwt, os
+import os
+import jwt
+
+from fastapi import APIRouter
+
+from services.currency_service import currency_service
+
 from fastapi import FastAPI, HTTPException, status, Depends, Query, Request
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.responses import RedirectResponse, JSONResponse, FileResponse
@@ -22,11 +32,6 @@ from db.models import WishlistItem
 from schemas.schemas import WishlistCreate, WishlistRead
 from schemas.schemas import UserCreate, UserRead, Token, TransactionCreate, TransactionRead
 from schemas.schemas import ForgotPasswordRequest, ResetPasswordRequest
-
-from contextlib import asynccontextmanager
-import random
-import smtplib
-from email.message import EmailMessage
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -45,14 +50,12 @@ async def lifespan(app: FastAPI):
     yield
     currency_service.stop()
 
-# ---------- CONFIG ----------
 SECRET_KEY = (Path(__file__).resolve().parent / "core" / "secret_key").read_text().strip()
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-# from dotenv import load_dotenv
-
-# load_dotenv()
+from dotenv import load_dotenv
+load_dotenv()
 
 SMTP_SERVER = os.getenv("SMTP_SERVER")
 SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
@@ -65,11 +68,10 @@ SessionDep = Annotated[Session, Depends(get_session)]
 
 app = FastAPI(title="Finance Tracker API", lifespan=lifespan)
 
-# ---------- STATIC FILES ----------
 # Папка dist — збірка React/Vite
-app.mount("/app", StaticFiles(directory="./templates/dist", html=True), name="frontend")
+# Serve static assets (JS, CSS, images) directly
+app.mount("/app/assets", StaticFiles(directory="./templates/dist/assets"), name="assets")
 
-# ---------- AUTH HELPERS ----------
 def get_password_hash(password: str):
     """
     Хешує пароль користувача перед збереженням у базу даних.
@@ -141,7 +143,7 @@ async def get_current_user(
 
 from fastapi.responses import RedirectResponse
 
-# redirect to app
+# redirect to app   
 @app.get("/")
 def main():
     """
@@ -151,8 +153,6 @@ def main():
     """
     return RedirectResponse(url="/app/")
 
-
-# ---------- AUTH ROUTES ----------
 from fastapi import Body
 
 from fastapi import Body
@@ -189,8 +189,6 @@ def register_and_login(
     # створюємо токен після реєстрації
     token = create_access_token(data={"sub": db_user.username})
     return {"access_token": token, "token_type": "bearer"}
-
-
 
 @app.post("/token", response_model=Token)
 async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], session: SessionDep):
@@ -235,6 +233,17 @@ def create_transaction(
     session: SessionDep,
     user: Annotated[User, Depends(get_current_user)],
 ):
+    """
+    Creates a new financial transaction for the authenticated user.
+
+    Args:
+        data (TransactionCreate): Transaction data provided in the request body.
+        session (Session): Active database session.
+        user (User): Currently authenticated user.
+
+    Returns:
+        TransactionRead: The created transaction object.
+    """
     transaction = Transaction(
         **data.model_dump(),
         user_id=user.id,
@@ -250,6 +259,16 @@ def get_expenses(
     session: SessionDep,
     user: Annotated[User, Depends(get_current_user)],
 ):
+    """
+    Returns all expense transactions for the authenticated user.
+
+    Args:
+        session (Session): Active database session.
+        user (User): Currently authenticated user.
+
+    Returns:
+        List[TransactionRead]: List of user's expense transactions.
+    """
     statement = select(Transaction).where(
         Transaction.user_id == user.id,
         Transaction.type == "expenses"
@@ -261,6 +280,16 @@ def get_income(
     session: SessionDep,
     user: Annotated[User, Depends(get_current_user)],
 ):
+    """
+    Returns all income transactions for the authenticated user.
+
+    Args:
+        session (Session): Active database session.
+        user (User): Currently authenticated user.
+
+    Returns:
+        List[TransactionRead]: List of user's income transactions.
+    """
     statement = select(Transaction).where(
         Transaction.user_id == user.id,
         Transaction.type == "income"
@@ -274,11 +303,21 @@ def delete_transaction(
     user: Annotated[User, Depends(get_current_user)]
 ):
     """
-    Видаляє транзакцію користувача за її ID.
-    Доступно лише власнику транзакції.
+    Deletes a transaction by its ID.
 
-    Deletes a transaction by ID.
-    Only accessible to the transaction owner.
+    Only the owner of the transaction can delete it.
+
+    Args:
+        tx_id (str): ID of the transaction to delete.
+        session (Session): Active database session.
+        user (User): Currently authenticated user.
+
+    Returns:
+        dict: Confirmation message {"ok": True}.
+
+    Raises:
+        HTTPException: If the transaction does not exist
+        or does not belong to the user.
     """
     tx = session.get(Transaction, tx_id)
     if not tx or tx.user_id != user.id:
@@ -300,7 +339,6 @@ def get_balance(session: SessionDep, user: Annotated[User, Depends(get_current_u
     total = sum(t.amount for t in transactions)
     return {"balance": total, "count": len(transactions)}
 
-# ---------- LOGOUT ----------
 @app.get("/logout")
 def logout():
     """
@@ -316,6 +354,18 @@ def logout():
 
 @app.get("/api/currency/rates")
 async def get_currency_rates():
+    """
+    Returns the latest available currency exchange rates.
+
+    The rates are provided from the in-memory currency service cache.
+    If rates have not been updated yet, the timestamp may be None.
+
+    Returns:
+        dict: A dictionary containing:
+            - rates (dict): Current currency exchange rates.
+            - last_update (str | None): Time of the last update
+            formatted as HH:MM:SS, or None if not available.
+    """
     return {
         "rates": currency_service.current_rates,
         "last_update": currency_service.last_update.strftime("%H:%M:%S")
@@ -324,49 +374,100 @@ async def get_currency_rates():
 
 @app.get("/api/currency/update")
 async def update_currency_rates():
+    """
+    Forces an immediate update of currency exchange rates.
+
+    Fetches fresh exchange rates from the external provider
+    and updates the in-memory cache.
+
+    Returns:
+        dict: A dictionary containing:
+            - rates (dict): Updated currency exchange rates.
+            - last_update (str): Time of the update
+            formatted as HH:MM:SS.
+    """
     rates = await currency_service.fetch_rates(force_update=True)
     return {
         "rates": rates,
         "last_update": currency_service.last_update.strftime("%H:%M:%S")
     }
 
-
-# ---------- WISHLIST (Мрії) ----------
-from fastapi import APIRouter
-
 wishlist_router = APIRouter()
 
-# --- Отримати всі мрії користувача ---
 @wishlist_router.get("/wishlist/", response_model=List[WishlistRead])
 def get_wishlist(
     session: SessionDep,
     user: Annotated[User, Depends(get_current_user)]
 ):
+    """
+    Returns all wishlist items for the authenticated user.
+
+    Only items that belong to the currently logged-in
+    user are returned.
+
+    Args:
+        session (Session): Active database session.
+        user (User): Currently authenticated user.
+
+    Returns:
+        List[WishlistRead]: List of wishlist items owned by the user.
+    """
     items = session.exec(
         select(WishlistItem).where(WishlistItem.owner_id == user.id)
     ).all()
     return items
 
-# --- Додати нову мрію ---
 @wishlist_router.post("/wishlist/", response_model=WishlistRead)
 def create_wishlist_item(
     data: WishlistCreate,
     session: SessionDep,
     user: Annotated[User, Depends(get_current_user)]
 ):
+    """
+    Creates a new wishlist item for the authenticated user.
+
+    The item is stored in the database and linked
+    to the current user via the `owner_id` field.
+
+    Args:
+        data (WishlistCreate): Data for the new wishlist item.
+        session (Session): Active database session.
+        user (User): Currently authenticated user.
+
+    Returns:
+        WishlistRead: The created wishlist item.
+    """
     item = WishlistItem(**data.model_dump(), owner_id=user.id)
     session.add(item)
     session.commit()
     session.refresh(item)
     return item
 
-# --- Змінити статус покупки (is_bought) ---
+# Змінити статус покупки (is_bought)
 @wishlist_router.patch("/wishlist/{item_id}", response_model=WishlistRead)
 def toggle_wishlist_item(
     item_id: int,
     session: SessionDep,
     user: Annotated[User, Depends(get_current_user)]
 ):
+    """
+    Toggles the purchase status of a wishlist item.
+
+    The `is_bought` field is switched between True and False.
+    Only the owner of the item is allowed to modify it.
+
+    Args:
+        item_id (int): ID of the wishlist item.
+        session (Session): Active database session.
+        user (User): Currently authenticated user.
+
+    Returns:
+        WishlistRead: The updated wishlist item.
+
+    Raises:
+        HTTPException: If the item does not exist
+        or does not belong to the current user.
+    """
     item = session.get(WishlistItem, item_id)
     if not item or item.owner_id != user.id:
         raise HTTPException(status_code=404, detail="Item not found")
@@ -376,13 +477,30 @@ def toggle_wishlist_item(
     session.refresh(item)
     return item
 
-# --- Видалити мрію ---
+# Видалити мрію
 @wishlist_router.delete("/wishlist/{item_id}")
 def delete_wishlist_item(
     item_id: int,
     session: SessionDep,
     user: Annotated[User, Depends(get_current_user)]
 ):
+    """
+    Deletes a wishlist item by its ID.
+
+    Only the owner of the item is allowed to delete it.
+
+    Args:
+        item_id (int): ID of the wishlist item.
+        session (Session): Active database session.
+        user (User): Currently authenticated user.
+
+    Returns:
+        dict: Confirmation message {"ok": True}.
+
+    Raises:
+        HTTPException: If the item does not exist
+        or does not belong to the current user.
+    """
     item = session.get(WishlistItem, item_id)
     if not item or item.owner_id != user.id:
         raise HTTPException(status_code=404, detail="Item not found")
@@ -390,18 +508,26 @@ def delete_wishlist_item(
     session.commit()
     return {"ok": True}
 
-# --- Підключаємо роутер до основного додатку ---
+# Підключаємо роутер до основного додатку
 app.include_router(wishlist_router)
 
 
 def send_email(to_email: str, subject: str, body: str):
     """
-    Надсилає електронний лист через SMTP.
+    Sends an email using the configured SMTP server.
+
+    Establishes a secure TLS connection,
+    authenticates using environment credentials,
+    and sends a plain text email.
 
     Args:
-        to_email (str): Кому надсилати.
-        subject (str): Тема листа.
-        body (str): Тіло листа.
+        to_email (str): Recipient email address.
+        subject (str): Email subject line.
+        body (str): Email body content.
+
+    Raises:
+        Exception: If the SMTP connection,
+        authentication, or sending fails.
     """
     try:
         msg = EmailMessage()
@@ -426,7 +552,24 @@ reset_storage = {}
 
 @app.post("/forgot-password")
 def forgot_password(data: ForgotPasswordRequest, session: SessionDep):
+    """
+    Initiates the password reset process.
 
+    Generates a temporary 6-digit reset code,
+    stores it in memory with an expiration time,
+    and sends it to the user's registered email address.
+
+    A generic response is returned to prevent
+    account enumeration attacks.
+
+    Args:
+        data (ForgotPasswordRequest): Contains the username.
+        session (Session): Active database session.
+
+    Returns:
+        dict: Confirmation message indicating that
+        a reset code was sent (if the account exists).
+    """
     clean_expired_reset_codes()
 
     user = session.exec(
@@ -440,10 +583,10 @@ def forgot_password(data: ForgotPasswordRequest, session: SessionDep):
 
     reset_storage[data.username] = {
         "code": code,
-        "expire": datetime.now(timezone.utc) + timedelta(minutes=1)
+        "expire": datetime.now(timezone.utc) + timedelta(minutes=5)
     }
 
-    body = f"Your password reset code is: {code}\nIt expires in 1 minute."
+    body = f"Your password reset code is: {code}\nIt expires in 5 minute."
 
     send_email(user.email, "Reset password", body)
 
@@ -451,7 +594,27 @@ def forgot_password(data: ForgotPasswordRequest, session: SessionDep):
 
 @app.post("/reset-password")
 def reset_password(data: ResetPasswordRequest, session: SessionDep):
+    """
+    Resets the user's password using a valid reset code.
 
+    Validates the reset request, verifies the code,
+    updates the hashed password in the database,
+    and removes the temporary reset record.
+
+    Args:
+        data (ResetPasswordRequest): Contains username,
+            reset code, and new password.
+        session (Session): Active database session.
+
+    Returns:
+        dict: Confirmation message {"detail": "Password updated"}.
+
+    Raises:
+        HTTPException:
+            - If no reset request exists
+            - If the code is invalid
+            - If the user does not exist
+    """
     clean_expired_reset_codes()
 
     stored = reset_storage.get(data.username)
@@ -478,6 +641,12 @@ def reset_password(data: ResetPasswordRequest, session: SessionDep):
     return {"detail": "Password updated"}
 
 def clean_expired_reset_codes():
+    """
+    Removes expired password reset codes from in-memory storage.
+
+    Checks all stored reset requests and deletes
+    those whose expiration timestamp has passed.
+    """
     now = datetime.now(timezone.utc)
 
     expired_users = [
@@ -493,6 +662,30 @@ def clean_expired_reset_codes():
 @app.get("/favicon.ico", include_in_schema=False)
 def favicon():
     """
-    Повертає favicon для браузера.
+    Returns the application's favicon file.
+
+    This endpoint is excluded from the OpenAPI schema
+    and is used by browsers to display the site icon.
     """
     return FileResponse(Path("./templates/assets/favicon.ico"))
+
+
+
+@app.get("/api/currency/history")
+async def get_currency_history():
+    usd = await currency_service.fetch_history("USD")
+    eur = await currency_service.fetch_history("EUR")
+
+    by_date = {}
+    for r in usd:
+        by_date.setdefault(r["date"], {"date": r["date"]})["USD_buy"]  = r["buy"]
+        by_date[r["date"]]["USD_sell"] = r["sell"]
+    for r in eur:
+        by_date.setdefault(r["date"], {"date": r["date"]})["EUR_buy"]  = r["buy"]
+        by_date[r["date"]]["EUR_sell"] = r["sell"]
+
+    return sorted(by_date.values(), key=lambda x: x["date"])
+@app.get("/app/{full_path:path}")
+def serve_spa(full_path: str):
+    index = Path("./templates/dist/index.html")
+    return FileResponse(index)

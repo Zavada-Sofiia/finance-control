@@ -74,20 +74,31 @@ class CurrencyService:
         self.last_update = datetime.now()
         return result
 
+
     async def fetch_rates(self, force_update: bool = False) -> dict:
-        """
-        Якщо force_update=True — обов'язково робимо запит до API,
-        ігноруючи попередні current_rates.
-        """
         if not force_update and self.current_rates:
             return self.current_rates
 
-        urls = [
-            "https://api.exchangerate-api.com/v4/latest/UAH",
-            "https://open.er-api.com/v6/latest/UAH",
-        ]
         async with httpx.AsyncClient(timeout=5) as client:
-            for url in urls:
+            try:
+                resp = await client.get("https://bank.gov.ua/NBU_Exchange/exchange_site?json")
+                if resp.status_code == 200:
+                    data = resp.json()
+                    # NBU: rate = UAH per 1 foreign unit → invert for _format
+                    raw = {
+                        item["cc"]: 1 / item["rate"]
+                        for item in data
+                        if item.get("rate") and item.get("cc") in CURRENCY_META
+                    }
+                    if raw:
+                        return self._format(raw)
+            except Exception as e:
+                print(f"[CurrencyService] Error fetching NBU: {e}")
+
+            for url in [
+                "https://api.exchangerate-api.com/v4/latest/UAH",
+                "https://open.er-api.com/v6/latest/UAH",
+            ]:
                 try:
                     resp = await client.get(url)
                     if resp.status_code == 200:
@@ -98,10 +109,31 @@ class CurrencyService:
                 except Exception as e:
                     print(f"[CurrencyService] Error fetching {url}: {e}")
 
-        # fallback
         self.current_rates = DEFAULT_RATES
         self.last_update = datetime.now()
         return DEFAULT_RATES
+    
+    async def fetch_history(self, code: str, days: int = 10) -> list[dict]:
+        from datetime import timedelta
+        end = datetime.now()
+        start = end - timedelta(days=days)
+        url = (
+            f"https://bank.gov.ua/NBU_Exchange/exchange_site"
+            f"?start={start.strftime('%Y%m%d')}"
+            f"&end={end.strftime('%Y%m%d')}"
+            f"&valcode={code.lower()}&json"
+        )
+        async with httpx.AsyncClient(timeout=5) as client:
+            resp = await client.get(url)
+            data = resp.json()
+            return [
+                {
+                    "date": r["exchangedate"],
+                    "buy":  round(r["rate"] * (1 - SPREAD), 4),
+                    "sell": round(r["rate"] * (1 + SPREAD), 4),
+                }
+                for r in data
+            ]
 
     async def _auto_update_loop(self):
         while True:

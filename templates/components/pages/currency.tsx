@@ -1,6 +1,6 @@
 import { Navigation } from '../../Navigation';
 import { Link } from 'react-router';
-import { TrendingUp, RefreshCw } from 'lucide-react';
+import { RefreshCw, TrendingUp } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
 import { useState, useEffect, useCallback } from 'react';
 import currency_back_img from '../../assets/currency_back_img.png';
@@ -9,7 +9,9 @@ export function CurrencyImg() {
   return <img src={currency_back_img} alt="Currency" className="w-full h-auto object-contain" />;
 }
 
-interface ExchangeRate {
+const ORDER = ['USD', 'EUR', 'GBP', 'CAD', 'PLN', 'CZK', 'JPY'];
+
+interface RateEntry {
   flag: string;
   name: string;
   buy: number;
@@ -17,40 +19,31 @@ interface ExchangeRate {
   trend?: 'up' | 'down' | 'neutral';
 }
 
-interface RatesResponse {
-  rates: Record<string, ExchangeRate>;
+interface ApiResponse {
+  rates: Record<string, RateEntry>;
   last_update: string | null;
 }
 
 function formatRate(value: number): string {
-  const str = value.toFixed(4);
-  const trimmed = str.replace(/(\.\d{2,})0+$/, '$1');
-  return trimmed;
+  return value.toFixed(4).replace(/(\.\d{2,})0+$/, '$1');
 }
 
 export function Currency() {
-  const [rates, setRates] = useState<ExchangeRate[]>([]);
+  const [rates, setRates] = useState<Record<string, RateEntry>>({});
   const [lastUpdate, setLastUpdate] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const parseRates = (data: RatesResponse) => {
-    const order = ['USD', 'EUR', 'GBP', 'CAD', 'PLN', 'CZK', 'JPY'];
-    const parsed: ExchangeRate[] = order
-      .filter((code) => data.rates[code])
-      .map((code) => data.rates[code]);
-    setRates(parsed);
-    setLastUpdate(data.last_update);
+  const applyResponse = (data: ApiResponse) => {
+    setRates(data.rates ?? {});
+    setLastUpdate(data.last_update ?? null);
   };
 
   const loadRates = useCallback(async () => {
     try {
-      const res = await fetch('/api/currency/rates', {
-        credentials: 'include',
-      });
+      const res = await fetch('/api/currency/rates', { credentials: 'include' });
       if (!res.ok) throw new Error('Failed to fetch');
-      const data: RatesResponse = await res.json();
-      parseRates(data);
+      applyResponse(await res.json());
     } catch {
       toast.error('Failed to load exchange rates');
     } finally {
@@ -64,27 +57,23 @@ export function Currency() {
     return () => clearInterval(interval);
   }, [loadRates]);
 
-const handleRefresh = async () => {
-  setRefreshing(true);
-  try {
-    const res = await fetch('/api/currency/update', {
-      method: 'GET',
-    });
-    if (!res.ok) throw new Error('Failed to update');
-    const data: RatesResponse = await res.json();
-    parseRates(data);
-    toast.success('Exchange rates updated!', {
-      description: data.last_update
-        ? `Updated at ${data.last_update}`
-        : 'Latest data received',
-      duration: 3000,
-    });
-  } catch (error) {
-    toast.error('Failed to update rates');
-  } finally {
-    setRefreshing(false);
-  }
-};
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      const res = await fetch('/api/currency/update');
+      if (!res.ok) throw new Error('Failed to update');
+      const data: ApiResponse = await res.json();
+      applyResponse(data);
+      toast.success('Exchange rates updated!', {
+        description: data.last_update ? `Updated at ${data.last_update}` : 'Latest data received',
+        duration: 3000,
+      });
+    } catch {
+      toast.error('Failed to update rates');
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   return (
     <div className="min-h-screen pb-16">
@@ -103,7 +92,6 @@ const handleRefresh = async () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-            {/* Left: Table */}
             <div className="space-y-6">
               <div className="bg-white rounded-2xl overflow-hidden border border-gray-200 shadow-sm">
                 <div className="overflow-x-auto">
@@ -125,39 +113,29 @@ const handleRefresh = async () => {
                                 <div className="w-16 h-4 bg-gray-200 rounded animate-pulse" />
                               </div>
                             </td>
-                            <td className="py-3 px-4">
-                              <div className="w-16 h-4 bg-gray-200 rounded animate-pulse" />
-                            </td>
-                            <td className="py-3 px-4">
-                              <div className="w-16 h-4 bg-gray-200 rounded animate-pulse" />
-                            </td>
+                            <td className="py-3 px-4"><div className="w-16 h-4 bg-gray-200 rounded animate-pulse" /></td>
+                            <td className="py-3 px-4"><div className="w-16 h-4 bg-gray-200 rounded animate-pulse" /></td>
                           </tr>
                         ))
                       ) : (
-                        rates.map((rate, index) => (
-                          <tr
-                            key={index}
-                            className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors"
-                          >
-                            <td className="py-3 px-4">
-                              <div className="flex items-center gap-2">
-                                <span className="text-2xl">{rate.flag}</span>
-                                <span className="font-medium">{rate.name}</span>
-                                {rate.trend && rate.trend !== 'neutral' && (
-                                  <TrendingUp
-                                    className={`w-4 h-4 ${
-                                      rate.trend === 'up'
-                                        ? 'text-green-500'
-                                        : 'text-red-500 rotate-180'
-                                    }`}
-                                  />
-                                )}
-                              </div>
-                            </td>
-                            <td className="py-3 px-4 text-gray-900">{formatRate(rate.buy)}</td>
-                            <td className="py-3 px-4 text-gray-900">{formatRate(rate.sell)}</td>
-                          </tr>
-                        ))
+                        ORDER.filter((code) => rates[code]).map((code) => {
+                          const r = rates[code];
+                          return (
+                            <tr key={code} className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors">
+                              <td className="py-3 px-4">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-2xl">{r.flag}</span>
+                                  <span className="font-medium">{r.name}</span>
+                                  {r.trend && r.trend !== 'neutral' && (
+                                    <TrendingUp className={`w-4 h-4 ${r.trend === 'up' ? 'text-green-500' : 'text-red-500 rotate-180'}`} />
+                                  )}
+                                </div>
+                              </td>
+                              <td className="py-3 px-4 text-gray-900">{formatRate(r.buy)}</td>
+                              <td className="py-3 px-4 text-gray-900">{formatRate(r.sell)}</td>
+                            </tr>
+                          );
+                        })
                       )}
                     </tbody>
                   </table>
@@ -183,7 +161,6 @@ const handleRefresh = async () => {
               </div>
             </div>
 
-            {/* Right: Illustration */}
             <div className="hidden md:flex flex-col items-center justify-end">
               <CurrencyImg />
             </div>

@@ -7,6 +7,7 @@ import { Statistics } from "./components/pages/statistics";
 import { Login } from "./components/pages/login";
 import { Signup } from "./components/pages/signup";
 import { ProtectedRoute } from "./ProtectedRoute";
+console.log('Statistics import:', Statistics); // add this
 
 export const router = createBrowserRouter([
   {

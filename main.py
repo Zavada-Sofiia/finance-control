@@ -153,6 +153,16 @@ def main():
     """
     return RedirectResponse(url="/app/")
 
+
+@app.get("/health", include_in_schema=False)
+def health():
+    """
+    Легкий ендпоінт для keep-alive пінгу (GitHub Actions).
+
+    Lightweight endpoint used by the keep-alive workflow.
+    """
+    return {"status": "ok"}
+
 from fastapi import Body
 
 from fastapi import Body
